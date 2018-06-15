@@ -19,7 +19,6 @@ img_path = join(dirname, 'images', img_id+'.png')
 mask_dir = join(dirname, 'masks')
 
 img = Image.open(img_path)
-#img.show()
 
 img_arr = np.array(img)
 _, img_thresh = cv.threshold(img_arr, 25, 255, cv.THRESH_BINARY)
@@ -29,7 +28,8 @@ import matplotlib.pyplot as plt
 f = plt.figure()
 
 f.add_subplot(1, 2, 1)
-plt.imshow(img_thresh, cmap='gray')
+#plt.imshow(img_thresh, cmap='gray')
+plt.imshow(img_arr)
 
 masks = os.listdir(mask_dir)
 total_mask = np.zeros_like(img_arr[:,:,0])
@@ -37,9 +37,9 @@ for mask in masks:
     mask_img = Image.open(join(mask_dir, mask))
     total_mask += np.array(mask_img)
 
-print np.linalg.norm(img_thresh-total_mask)/np.linalg.norm(img_thresh+total_mask)
-print np.sum(img_thresh == 0)
-print np.sum(total_mask == 0)
+#print np.linalg.norm(img_thresh-total_mask)/np.linalg.norm(img_thresh+total_mask)
+#print np.sum(img_thresh == 0)
+#print np.sum(total_mask == 0)
 
 f.add_subplot(1, 2, 2)
 plt.imshow(total_mask, cmap='gray')

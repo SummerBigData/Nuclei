@@ -21,34 +21,57 @@ img_path = join(dirname, 'images', img_id+'.png')
 mask_dir = join(dirname, 'masks')
 
 print img_id
-#img_arr = np.array(Image.open(img_path))
-#Image.open(img_path).show()
 
 import matplotlib.pyplot as plt
-fig, axs = plt.subplots(1, 3)
 
 masks = os.listdir(mask_dir)
-idx = np.random.randint(0, len(masks))
-total_mask = np.array(Image.open(join(mask_dir, masks[idx])))
-#total_mask = np.zeros_like(img_arr[:,:,0])
-#for mask in masks:
-#    mask_img = Image.open(join(mask_dir, mask))
-#    total_mask += np.array(mask_img)
+#idx = np.random.randint(0, len(masks))
+#total_mask = np.array(Image.open(join(mask_dir, masks[idx])))
+total_mask = None
+for mask in masks:
+    mask_img = Image.open(join(mask_dir, mask))
+    if total_mask is None:
+        total_mask = np.zeros_like(np.array(mask_img))
+    total_mask += np.array(mask_img)
 
-gray_mask = total_mask.copy()
+output = cv.connectedComponentsWithStats(total_mask, cv.CV_32S)
+num_label, labels = output[0], output[1]
+
+label_num = np.random.randint(1, num_label)
+
+for i in range(labels.shape[0]):
+    for j in range(labels.shape[1]):
+        if labels[i,j] == label_num:
+            labels[i,j]= 1.0
+        else:
+            labels[i,j] = 0.0
+
+total_mask = labels*255
+
+from skimage.morphology import convex_hull_image
+from skimage.measure import find_contours 
+
+hull = convex_hull_image(total_mask)
+contour = find_contours(hull, 0.0)[0]
+mask_contour = find_contours(total_mask, 0.0)[0]
+
+_, axs = plt.subplots(1, 2)
 axs[0].imshow(total_mask, cmap='gray')
+axs[1].imshow(hull, cmap='gray')
+#axs[1].plot(contour[:,1], contour[:,0], lw=1.5)
+axs[1].plot(mask_contour[:,1], mask_contour[:,0], lw=1.5)
 
-corners = total_mask.copy()
-corners = cv.cvtColor(corners, cv.COLOR_GRAY2BGRA)
-gray_mask = np.float32(gray_mask)
-harris = cv.cornerHarris(gray_mask, 4, 3, 0.04)
-corners[harris > 0.05*harris.max()] = [0, 0, 255, 255]
+hull_area = np.sum(hull == 1)
+mask_area = np.sum(total_mask == 255)
+print mask_area, hull_area
 
-axs[1].imshow(corners)
-
-corner_gray = np.zeros_like(harris)
-corner_gray[harris > 0.05*harris.max()] = 255
-
-axs[2].imshow(corner_gray, cmap='gray')
+diffs = []
+for hv, mv in zip(contour, mask_contour):
+    xmatch = mv[0] <= hv[0]+1 and mv[0] >= hv[0]-1
+    ymatch = mv[1] <= hv[1]+1 and mv[1] >= hv[1]-1
+    if not (xmatch and ymatch):
+        diffs.append(mv)
+print diffs
+axs[0].scatter([d[1] for d in diffs], [d[0] for d in diffs], s=2.5, c='r')
 
 plt.show()

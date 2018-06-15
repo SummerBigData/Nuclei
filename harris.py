@@ -39,7 +39,7 @@ plt.imshow(total_mask)
 corners = total_mask.copy()
 gray_mask = np.float32(gray_mask)
 harris = cv.cornerHarris(gray_mask, 4, 3, 0.04)
-corners[harris > 0.05*harris.max()] = [0, 0, 255, 255]
+corners[harris > 0.05*harris.max()] = [255, 0, 0, 255]
 
 f.add_subplot(1, 2, 2)
 plt.imshow(corners)
