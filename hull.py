@@ -13,28 +13,12 @@ from os.path import join
 
 import matplotlib.pyplot as plt
 
+from util import *
 
-""" Pick a random image and get its total mask """
-img_ids = os.listdir('data')
-img_ids = list(filter(lambda f: not f.endswith('zip'), img_ids))
-img_ids = list(filter(
-    lambda f: os.path.isdir(join('data', f, 'masks')), img_ids))
-
-img_id = np.random.choice(img_ids)
+img_id = get_random_id()
 print img_id
 
-dirname = join('data', img_id)
-img_path = join(dirname, 'images', img_id+'.png')
-mask_dir = join(dirname, 'masks')
-
-masks = os.listdir(mask_dir)
-total_mask = None
-for mask in masks:
-    mask_img = Image.open(join(mask_dir, mask))
-    if total_mask is None:
-        total_mask = np.zeros_like(np.array(mask_img))
-    total_mask += np.array(mask_img)
-
+total_mask = load_total_mask(img_id)
 
 """ Stamp just the given label number out of the components image """
 def stamp(labels, label_num):
@@ -99,35 +83,8 @@ for mask, mask_contour, hull, hull_contour in concave_masks:
         #ymatch = mv[1] <= hv[1]+1 and mv[1] >= hv[1]-1
         #if not (xmatch and ymatch):
         if dist(mv, hv) >= np.sqrt(2.):
-            #"""
-            shd_app = True
-            close_pts = []
-
-            # for every existing point off of the convex hull,
-            # if it is close enough to the current point,
-            # remove that point if it is closer to the hull,
-            # otherwise, don't append the current point
-            for i, diff in enumerate(diffs):
-                if dist(diff, mv) < np.sqrt(2.):
-                    if dist(diff, hv) < dist(mv, hv):
-                        close_pts.append(i)
-                    else:
-                        shd_app = False
-                        break
-
-            if shd_app:
-                diffs.append([mv[0], mv[1]])
-                dists.append(dist(mv, hv))
-            #"""
-            #diffs.append((mv[0], mv[1]))
-            #dists.append(np.sqrt((mv[0]-hv[0])**2 + (mv[1]-hv[1])**2))
-
-    # Take the points on the mask contour that are farthest from the
-    # hull contour and remove difference points that are close to them
-    # on the mask contour.
-    # Repeat this so that the difference points are sparse
-    #idxs = np.argsort(np.array(dists))
-    #for i in idxs:
+            diffs.append((mv[0], mv[1]))
+            dists.append(np.sqrt((mv[0]-hv[0])**2 + (mv[1]-hv[1])**2))
 
     axs[0].scatter([d[1] for d in diffs], [d[0] for d in diffs], s=3.5, c='r')
 
