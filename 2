@@ -62,7 +62,7 @@ def get_all_concave_masks(img):
         # as well as the boundaries of it and its corresponding hull
         hull = convex_hull_image(stamped)
         hull_contour = find_contours(hull, 0.0)[0]
-        mask_contour = find_contours(stamped, 0.0)[0]
+        mask_contour = find_contours(total_mask, 0.0)[0]
 
         # If the area of the mask is less than 95% that of
         # the convex hull, we say that it is concave
@@ -91,36 +91,22 @@ for mask, mask_contour, hull, hull_contour in concave_masks:
     diffs = []
     dists = []
 
-    def dist(p1, p2):
-        return np.sqrt(np.sum(p1-p2)**2)
-
-    for hv, mv in zip(hull_contour, mask_contour):
-        #xmatch = mv[0] <= hv[0]+1 and mv[0] >= hv[0]-1
-        #ymatch = mv[1] <= hv[1]+1 and mv[1] >= hv[1]-1
-        #if not (xmatch and ymatch):
-        if dist(mv, hv) >= np.sqrt(2.):
+    for hv, mv in zip(contour, mask_contour):
+        xmatch = mv[0] <= hv[0]+1 and mv[0] >= hv[0]-1
+        ymatch = mv[1] <= hv[1]+1 and mv[1] >= hv[1]-1
+        if not (xmatch and ymatch):
             #"""
             shd_app = True
-            close_pts = []
-
-            # for every existing point off of the convex hull,
-            # if it is close enough to the current point,
-            # remove that point if it is closer to the hull,
-            # otherwise, don't append the current point
-            for i, diff in enumerate(diffs):
-                if dist(diff, mv) < np.sqrt(2.):
-                    if dist(diff, hv) < dist(mv, hv):
-                        close_pts.append(i)
-                    else:
-                        shd_app = False
-                        break
-
+            for diff in diffs:
+                xmatch = mv[0] <= diff[0]+1 and mv[0] >= diff[0]-1
+                ymatch = mv[1] <= diff[1]+1 and mv[1] >= diff[1]-1
+                if xmatch or ymatch:
+                    shd_app = False
             if shd_app:
-                diffs.append([mv[0], mv[1]])
-                dists.append(dist(mv, hv))
+                diffs.append((mv[0], mv[1]))
             #"""
-            #diffs.append((mv[0], mv[1]))
-            #dists.append(np.sqrt((mv[0]-hv[0])**2 + (mv[1]-hv[1])**2))
+            diffs.append((mv[0], mv[1]))
+            dists.append(np.sqrt((mv[0]-hv[0])**2 + (mv[1]-hv[1])**2))
 
     # Take the points on the mask contour that are farthest from the
     # hull contour and remove difference points that are close to them
