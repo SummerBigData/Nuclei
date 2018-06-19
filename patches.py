@@ -7,12 +7,10 @@ import os
 from os.path import join
 from util import *
 
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import cv2 as cv
 
 for i, img_id in enumerate(all_ids()):
-    #_, axs = plt.subplots(1, 2)
-
     masks = get_mask_names(img_id)
     boundary_img = None
     total_mask = None
@@ -24,18 +22,16 @@ for i, img_id in enumerate(all_ids()):
             boundary_img = np.zeros(mask_arr.shape)
             total_mask = np.zeros(mask_arr.shape)
 
-        kernel = np.ones((3, 3))
-        mask_arr = cv.erode(mask_arr, kernel, iterations=1)
-        #boundary = find_contours(mask_arr, 0.0)[0].astype(int)
+        boundary = find_contours(mask_arr, 0.0)[0].astype(int)
 
-        #img = np.zeros_like(boundary_img)
-        #for pt in boundary:
-        #    img[pt[0], pt[1]] = 255.0
+        img = np.zeros_like(boundary_img)
+        for pt in boundary:
+            img[pt[0], pt[1]] = 255.0
         
-        #kernel = np.ones((2, 2))
-        #img = cv.dilate(img, kernel, iterations=1)
+        kernel = np.ones((2, 2))
+        img = cv.dilate(img, kernel, iterations=1)
 
         total_mask += mask_arr
-        #boundary_img += img/255.0
+        boundary_img += img/255.0
 
-    imsave(join('data', img_id, 'images', 'mask_eroded.png'), total_mask)
+    imsave(join('data', img_id, 'images', 'boundaries_dilated.png'), boundary_img)

@@ -19,13 +19,15 @@ import matplotlib.pyplot as plt
 ids = all_ids()
 ids = list(filter(
     lambda id:
-        isfile(join('data', id, 'images', 'mask.png')) and
-        isfile(join('data', id, 'images', 'overlaps.png')), ids))
+        isfile(join('data', id, 'images', 'mask_eroded.png')), ids))
 
-paths = [join('data', id, 'images', 'mask.png') for id in ids]
+paths = [join('data', id, 'images', id+'.png') for id in ids]
 X = [imread(path) for path in paths]
 
-paths = [join('data', id, 'images', 'overlaps.png') for id in ids]
+import cv2
+X = [cv2.cvtColor(x, cv2.COLOR_BGRA2GRAY) for x in X]
+
+paths = [join('data', id, 'images', 'mask_eroded.png') for id in ids]
 y = [imread(path) for path in paths]
 gen = generator(X, y)
 

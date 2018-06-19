@@ -25,11 +25,7 @@ _, img_thresh = cv.threshold(img_arr, 25, 255, cv.THRESH_BINARY)
 img_thresh = cv.cvtColor(img_thresh, cv.COLOR_BGR2GRAY)
 
 import matplotlib.pyplot as plt
-f = plt.figure()
-
-f.add_subplot(1, 2, 1)
-#plt.imshow(img_thresh, cmap='gray')
-plt.imshow(img_arr)
+_, axs = plt.subplots(1, 3)
 
 masks = os.listdir(mask_dir)
 total_mask = np.zeros_like(img_arr[:,:,0])
@@ -41,6 +37,11 @@ for mask in masks:
 #print np.sum(img_thresh == 0)
 #print np.sum(total_mask == 0)
 
-f.add_subplot(1, 2, 2)
-plt.imshow(total_mask, cmap='gray')
-plt.show(block=True)
+#plt.imshow(img_thresh, cmap='gray')
+img_arr = cv.cvtColor(img_arr, cv.COLOR_BGRA2GRAY)
+axs[0].imshow(img_arr, 'gray')
+
+axs[1].imshow(img_thresh, 'gray')
+axs[2].imshow(total_mask, 'gray')
+#axs[2].imshow(np.array(Image.open(join(dirname, 'images', 'boundaries.png'))), 'gray')
+plt.show()
