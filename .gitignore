@@ -5,3 +5,5 @@ images/
 u-net/
 models/
 #*
+test_data/
+test_data2/
