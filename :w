@@ -16,9 +16,7 @@ def all_ids():
     return list(filter(
         lambda f: os.path.isdir(join('data', f, 'masks')), img_ids))
 
-# Load the denoised image at the given path or, if it doesn't exit,
-# denoise the original image, save the result, and return it
-def load_or_denoise_and_save(path, id):
+def load_or_denoise_and_save(path):
     if isfile(path):
         return imread(path)
     else:
@@ -41,7 +39,7 @@ def all_imgs(ids=None, gray=True, denoise=False, ret_ids=False):
         for i, id in enumerate(ids):
             dir = join('data', id, 'images')
             path = join(dir, id+'_denoised.png')
-            imgs.append(load_or_denoise_and_save(path, id)) 
+            imgs.append(load_or_denoise_and_save(path)) 
 
         if ret_ids:
             return imgs, ids
@@ -74,7 +72,7 @@ def get_img(id=None, gray=True, denoise=False, ret_mask=False, erode=False, ret_
 
     dir = join('data', id, 'images')
     if denoise:
-        img = load_or_denoise_and_save(join(dir, id+'_denoised.png'), id) 
+        img = load_or_denoise_and_save(join(dir, id+'_denoised.png')) 
     else:
         img = imread(join(dir, id+'.png'))
 

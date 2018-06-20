@@ -1,4 +1,4 @@
-from boundary_fcn import generator
+from boundary_fcn import generator, cvt_to_gray
 from keras.models import model_from_json
 
 import sys
@@ -18,14 +18,14 @@ import matplotlib.pyplot as plt
 
 ids = all_ids()
 ids = list(filter(
-    lambda id:
-        isfile(join('data', id, 'images', 'mask.png')) and
-        isfile(join('data', id, 'images', 'boundaries.png')), ids))
+    lambda id: isfile(join('data', id, 'images', 'bounds_eroded.png')), 
+    ids))
 
-paths = [join('data', id, 'images', 'mask.png') for id in ids]
+paths = [join('data', id, 'images', id+'.png') for id in ids]
 X = [imread(path) for path in paths]
+X = cvt_to_gray(X)
 
-paths = [join('data', id, 'images', 'boundaries.png') for id in ids]
+paths = [join('data', id, 'images', 'bounds_eroded.png') for id in ids]
 y = [imread(path) for path in paths]
 gen = generator(X, y)
 

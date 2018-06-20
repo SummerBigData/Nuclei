@@ -32,30 +32,27 @@ if __name__ == '__main__':
             isfile(join('data', id, 'images', id+'.png')) and
             isfile(join('data', id, 'images', 'mask_eroded.png')), ids))
 
-    paths = [join('data', id, 'images', id+'.png') for id in ids]
-    X = [imread(path) for path in paths]
+    print 'Loading inputs and denoising'
+    X = all_imgs(ids=ids, denoise=True)
 
-    import cv2
-    X = [cv2.cvtColor(x, cv2.COLOR_BGRA2GRAY) for x in X]
-
-    paths = [join('data', id, 'images', 'mask_eroded.png') for id in ids]
-    y = [imread(path) for path in paths]
+    print 'Loading masks (eroded)'
+    y = masks_for(ids, erode=True)
     gen = generator(X, y)
 
+    w = 2
     model = Sequential([
-        Conv2D(16, (4, 4), 
+        Conv2D(8, (w, w), 
             padding='same', 
             activation='relu', 
             input_shape=(None, None, 1)),
-        Conv2DTranspose(1, (4, 4), 
+        Conv2DTranspose(1, (w, w), 
             padding='same', 
-            activation='relu')
+            activation='sigmoid')
     ])
 
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(loss='mse', optimizer=sgd)
-
-    model.fit_generator(gen, steps_per_epoch=len(all_ids()), epochs=2)
+    model.compile(loss='binary_crossentropy', optimizer=sgd)
+    model.fit_generator(gen, steps_per_epoch=len(ids), epochs=4)
 
     with open(join('models', name, 'model.json'), 'w') as f:
         f.write(model.to_json())

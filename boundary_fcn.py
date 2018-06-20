@@ -14,6 +14,10 @@ name = sys.argv[1]
 if not isdir(join('models', name)):
     os.mkdir(join('models', name))
 
+def cvt_to_gray(X):
+    import cv2 as cv
+    return [cv.cvtColor(x, cv.COLOR_BGRA2GRAY) for x in X]
+
 def generator(X, y):
     while True:
         idxs = np.random.choice(range(len(X)), len(X), replace=False)
@@ -28,24 +32,31 @@ def generator(X, y):
 if __name__ == '__main__':
     ids = all_ids()
     ids = list(filter(
-        lambda id:
-            isfile(join('data', id, 'images', 'mask.png')) and
-            isfile(join('data', id, 'images', 'boundaries.png')), ids))
+        lambda id: isfile(join('data', id, 'images', 'bounds_eroded.png')), 
+        ids))
 
-    paths = [join('data', id, 'images', 'mask.png') for id in ids]
+    paths = [join('data', id, 'images', id+'.png') for id in ids]
     X = [imread(path) for path in paths]
+    X = cvt_to_gray(X)
 
-    paths = [join('data', id, 'images', 'boundaries.png') for id in ids]
+    paths = [join('data', id, 'images', 'bounds_eroded.png') for id in ids]
     y = [imread(path) for path in paths]
     gen = generator(X, y)
 
+    w = 2
     model = Sequential([
-        Conv2D(16, (4, 4), padding='same', activation='relu', input_shape=(None, None, 1)),
-        #Conv2D(8, (3, 3), padding='same', activation='relu'),
-        #Conv2DTranspose(1, (3, 3), padding='same', activation='relu'),
-        Conv2DTranspose(1, (4, 4), padding='same', activation='relu')])
+        Conv2D(16, (w, w), 
+            padding='same', 
+            activation='relu', 
+            input_shape=(None, None, 1)),
+        Conv2DTranspose(1, (w, w), 
+            padding='same', 
+            activation='relu')
+    ])
+
     sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='mse', optimizer=sgd)
+
     model.fit_generator(gen, steps_per_epoch=len(all_ids()), epochs=2)
 
     with open(join('models', name, 'model.json'), 'w') as f:

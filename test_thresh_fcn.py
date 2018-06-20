@@ -21,22 +21,27 @@ ids = list(filter(
     lambda id:
         isfile(join('data', id, 'images', 'mask_eroded.png')), ids))
 
-paths = [join('data', id, 'images', id+'.png') for id in ids]
-X = [imread(path) for path in paths]
-
-import cv2
-X = [cv2.cvtColor(x, cv2.COLOR_BGRA2GRAY) for x in X]
-
-paths = [join('data', id, 'images', 'mask_eroded.png') for id in ids]
-y = [imread(path) for path in paths]
+X = all_imgs(ids)
+y = masks_for(ids, erode=True) 
 gen = generator(X, y)
 
 for i in range(5):
     X, y = next(gen)
-    pred = model.predict(X)[0, :, :, 0]*255
+    pred = model.predict(X)[0, :, :, 0]
 
-    _, axs = plt.subplots(1, 3)
-    axs[0].imshow(pred, 'gray')
-    axs[1].imshow(y[0, :, :, 0], 'gray')
-    axs[2].imshow(X[0, :, :, 0], 'gray')
+    act = y[0, :, :, 0]
+    #print np.sqrt(sum((pred-act).flatten()**2))
+
+    _, axs = plt.subplots(1, 4)
+    axs[0].imshow(X[0,:,:,0], 'gray')
+    axs[1].imshow(act, 'gray')
+    axs[2].imshow(pred, 'gray')
+
+    #pred = np.round(pred)
+    #_, pred = cv2.threshold(pred, 0.33, 1.0, cv2.THRESH_BINARY)
+    t = 0.25
+    pred[pred > t] = 1.0
+    pred[pred <= t] = 0.0
+
+    axs[3].imshow(pred, 'gray')
     plt.show()
