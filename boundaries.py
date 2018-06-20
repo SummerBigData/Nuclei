@@ -11,45 +11,46 @@ from util import *
 import cv2 as cv
 
 for i, img_id in enumerate(all_ids()):
-    #_, axs = plt.subplots(1, 2)
-
     masks = get_mask_names(img_id)
     boundary_img = None
     total_mask = None
     shd_save = True
 
+    # For each mask for the current image, first erode it individually,
+    # then find it border.
+    #
+    # Overlay this border onto the total boundaries image
     for mask in masks:
-        mask_arr = arr(Image.open(mask))  
+        mask_arr = imread(mask)
         
         if total_mask is None or boundary_img is None:
             boundary_img = np.zeros(mask_arr.shape)
             total_mask = np.zeros(mask_arr.shape)
 
+        # Perform the erosion and find the border of the eroded mask.
         kernel = np.ones((2, 2))
         mask_ero = cv.erode(mask_arr, kernel, iterations=1)
         contours = find_contours(mask_ero, 0.0)
+
+        # Sometimes after erosion, the mask will be gone.
+        # For now we just ignore that mask and don't save the image.
         if len(contours) == 0:
             shd_save = False
             break
-        boundary = contours[0].astype(int)
 
+        boundary = contours[0].astype(int)
         img = np.zeros_like(boundary_img)
+
+        # Set each boundary point to 255 in a new image to overlay
+        # onto the total boundary image
+        #
+        # I know this is kind of ugly but it's the only way I could get it
+        # to work.
         for pt in boundary:
             img[pt[0], pt[1]] = 255.0
         
-        #kernel = np.ones((2, 2))
-        #img = cv.dilate(img, kernel, iterations=1)
-
         total_mask += mask_arr
         boundary_img += img
-
-    #img = imread(join('data', img_id, 'images', img_id+'.png'))
-    #img = cv.cvtColor(img, cv.COLOR_BGRA2GRAY)
-    #axs[0].imshow(img, 'gray')
-    #axs[1].imshow(boundary_img, 'gray')
-    #plt.show()
-    #if i == 2:
-    #    break
 
     if shd_save:
         imsave(join('data', img_id, 'images', 'bounds_eroded.png'), boundary_img)

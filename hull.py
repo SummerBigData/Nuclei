@@ -15,10 +15,8 @@ import matplotlib.pyplot as plt
 
 from util import *
 
-img_id = get_random_id()
+_, total_mask, img_id = get_img(ret_mask=True, ret_id=True)
 print img_id
-
-total_mask = load_total_mask(img_id)
 
 """ Stamp just the given label number out of the components image """
 def stamp(labels, label_num):

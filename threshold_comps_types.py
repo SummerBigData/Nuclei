@@ -7,44 +7,25 @@ import cv2 as cv
 
 import os
 from os.path import join
+from util import *
 
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button
 fig, axs = plt.subplots(2, 2)
 
-""" Load all of the image ids and filter those that do have masks """
-img_ids = os.listdir('data')
-img_ids = list(filter(lambda f: not f.endswith('zip'), img_ids))
-img_ids = list(filter(
-    lambda f: os.path.isdir(join('data', f, 'masks')), img_ids))
-
 
 """ Load a random image and return it converted to black and white and its masks """
 def get_img_and_mask():
-    img_id = np.random.choice(img_ids)
-    dirname = join('data', img_id)
-    img_path = join(dirname, 'images', img_id+'.png')
-    mask_dir = join(dirname, 'masks')
-    masks = os.listdir(mask_dir)
-
-    total_mask = None
-    for mask in masks:
-        mask_img = Image.open(join(mask_dir, mask))
-        if total_mask is None:
-            total_mask = np.zeros_like(np.array(mask_img))
-        total_mask += np.array(mask_img)
-    
-    img = Image.open(img_path)
-    img_arr = np.array(img)
-    img_arr = cv.cvtColor(img_arr, cv.COLOR_BGR2GRAY)
-    return img_id, img_path, img, img_arr, len(masks), total_mask 
+    img_arr, total_mask, img_id = get_img(ret_mask=True, ret_id=True)
+    img_path = join('data', img_id, 'images', img_id+'.png')
+    num_mask = len(get_mask_names(img_id))
+    return img_id, img_path, img, img_arr, num_mask, total_mask 
 
 
 """ Return the number of connected components and the label mask for an image """
 def conn_comp(img):
     output = cv.connectedComponentsWithStats(img, cv.CV_32S)
     return output[0]-1, output[1]
-
 
 
 img_arr, img_thresh = None, None
