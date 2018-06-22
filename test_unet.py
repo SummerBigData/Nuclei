@@ -16,19 +16,8 @@ from scipy.misc import imread, imresize
 from util import *
 import matplotlib.pyplot as plt
 
-ids = all_ids()
-ids = list(filter(
-    lambda id:
-        isfile(join('data', id, 'images', 'mask_eroded.png')), ids))
-
-paths = [join('data', id, 'images', id+'.png') for id in ids]
-X = [imread(path) for path in paths]
-
-import cv2
-X = [cv2.cvtColor(x, cv2.COLOR_BGRA2GRAY) for x in X]
-
-paths = [join('data', id, 'images', 'mask_eroded.png') for id in ids]
-y = [imread(path) for path in paths]
+X, ids = all_imgs(ret_ids=True)
+y = masks_for(ids, erode=True)
 
 s = [512, 256, 128]
 for i in range(len(X)):
@@ -40,6 +29,8 @@ for i in range(len(X)):
     y[i] = imresize(y[i], new_shape)
 
 gen = generator(X, y)
+
+from find_best_t import plot_best_t
 
 for i in range(5):
     X, y = next(gen)

@@ -1,5 +1,6 @@
 from boundary_fcn import generator
 from keras.models import model_from_json
+import cv2
 
 import sys
 from os.path import isfile, join
@@ -25,23 +26,24 @@ X = all_imgs(ids)
 y = masks_for(ids, erode=True) 
 gen = generator(X, y)
 
+from find_best_t import best_t, plot_best_t
+
 for i in range(5):
     X, y = next(gen)
     pred = model.predict(X)[0, :, :, 0]
 
     act = y[0, :, :, 0]
+    plot_best_t(img=(pred*255).astype(np.uint8), mask=(act*255).astype(np.uint8)) 
     #print np.sqrt(sum((pred-act).flatten()**2))
 
-    _, axs = plt.subplots(1, 4)
-    axs[0].imshow(X[0,:,:,0], 'gray')
-    axs[1].imshow(act, 'gray')
-    axs[2].imshow(pred, 'gray')
+    _, axs = plt.subplots(2, 2)
+    gray_imshow(axs[0,0], X[0,:,:,0], title='Input')
+    gray_imshow(axs[0,1], act, title='Target')
+    gray_imshow(axs[1,0], pred, title='Predicted')
 
     #pred = np.round(pred)
-    #_, pred = cv2.threshold(pred, 0.33, 1.0, cv2.THRESH_BINARY)
-    t = 0.25
-    pred[pred > t] = 1.0
-    pred[pred <= t] = 0.0
+    _, pred = cv2.threshold(pred, 0.25, 1.0, cv2.THRESH_BINARY)
 
-    axs[3].imshow(pred, 'gray')
+    #res, _ = best_t((pred*255.0).astype(np.uint8), (act*255.).astype(np.uint8), pred.shape)
+    gray_imshow(axs[1,1], pred, title='Predicted (thresholded)')
     plt.show()

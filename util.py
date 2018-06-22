@@ -43,6 +43,9 @@ def all_imgs(ids=None, gray=True, denoise=False, ret_ids=False):
             path = join(dir, id+'_denoised.png')
             imgs.append(load_or_denoise_and_save(path, id)) 
 
+        if gray:
+            imgs = [cv.cvtColor(img, cv.COLOR_BGRA2GRAY) for img in imgs]
+
         if ret_ids:
             return imgs, ids
         return imgs 
@@ -139,6 +142,23 @@ def load_or_create_mask(path, id, erode=False):
         imsave(jpath, mask)
         return mask
 
+def all_recursive_masks(ret_ids=False, smoothed=False):
+    ids = all_ids()
+
+    fname = 'thresh_recursive.png'
+    if smoothed:
+        fname = 'sm_rec_mask.png'
+
+    def path(id):
+        return join('data', id, 'images', fname)
+
+    ids = [id for id in ids if isfile(path(id))]
+    masks = [imread(path(id)) for id in ids]
+
+    if ret_ids:
+        return masks, ids
+    return masks
+
 # Return all of the total masks for each of the given list of ids
 # Erode the masks if erode=True.
 def masks_for(ids, erode=False):
@@ -153,5 +173,15 @@ def masks_for(ids, erode=False):
 
     return masks
 
-def gray_imshow(ax, img):
-    ax.imshow(img, 'gray')
+def mask_for(id, erode=False):
+    fname = 'mask.png'
+    if erode:
+        fname = 'mask_eroded.png'
+
+    return load_or_create_mask(join('data', id, 'images', fname), id, erode=erode)
+
+def gray_imshow(ax, img, cmap='gray', title=None):
+    ax.axis('off')
+    ax.imshow(img, cmap)
+    if not title is None:
+        ax.set_title(title)
