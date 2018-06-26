@@ -89,12 +89,12 @@ def find_diffs(mask_contour, hull_contour):
     return diffs
 
 """ Find the clusters of difference points on the mask boundary """
-def find_clusters(diffs)
+def find_clusters(diffs, eps=0.75):
     # Normalize diffs so that they can be inputted to DBSCAN
     X = StandardScaler().fit_transform(diffs)
 
     # Perform DBSCAN clustering on the points off of the hull 
-    db = DBSCAN(eps=0.75, min_samples=2).fit(X)
+    db = DBSCAN(eps=eps, min_samples=3).fit(X)
     labels = db.labels_
     num_cluster = len(set(labels)) - (1 if -1 in labels else 0)
 
@@ -108,6 +108,8 @@ def find_clusters(diffs)
 """ Find the closest pair of difference points between two clusters """
 def find_closest_pair(diffs, labels, num_cluster):
     closest_pair = []
+    n1, n2 = 0, 0
+    i1, i2 = 0, 0
     closest_dist = np.inf
 
     # For each cluster, for all other clusters, find the minimum distance between
@@ -132,11 +134,50 @@ def find_closest_pair(diffs, labels, num_cluster):
             if dist(pair[0], pair[1]) < closest_dist:
                 closest_dist = dist(pair[0], pair[1])
                 closest_pair = pair
+                n1, n2 = i, j
+                i1, i2 = idx1, idx2
+                
 
-    return closest_pair
+    return closest_pair, (n1, n2), (i1, i2)
+
+def find_coef(x, y, order):
+    if order == 4:
+        print 'Trying to fit quartic, giving up'
+        return np.polyfit(x, y, order)
+
+    try:
+        return np.polyfit(x, y, order)
+    except np.RankWarning:
+        'Increasing order to %d' % (order+1)
+        return find_coef(x, y, order+1)
+
+from scipy.optimize import curve_fit
+""" Find a polynomial smoothly connecting the closest points """
+def find_cut(s1, s2):
+    x = np.append(s1[:,0], s2[:,0])
+    y = np.append(s1[:,1], s2[:,1])
+
+    if len(x) == 3:
+        def func(x, a, b, c):
+            return np.polyval([a, b, c], x)
+    elif len(x) == 4:
+        def func(x, a, b, c, d):
+            return np.polyval([a, b, c, d], x)
+    else:
+        def func(x, a, b, c, d, e):
+            return np.polyval([a, b, c, d, e], x) 
+
+    coef, _ = curve_fit(func, x, y)
+    p = np.poly1d(coef)
+
+    xp = np.linspace(min(x), max(x), 100)
+    plt.plot(x, y, '.', xp, p(xp), '-')
 
 
 concave_masks = get_all_concave_masks(total_mask)
+if len(concave_masks) > 0:
+    avg_area = np.max([m.shape[0]*m.shape[1] for m in [c[0] for c in concave_masks]])
+
 for mask, mask_contour, hull, hull_contour in concave_masks:
     # Make a two-panel plot:
     # On the left, plot the mask, and clusters of difference points
@@ -145,7 +186,7 @@ for mask, mask_contour, hull, hull_contour in concave_masks:
     gray_imshow(axs[0], mask)
     gray_imshow(axs[1], hull)
     axs[1].plot(mask_contour[:,1], mask_contour[:,0], lw=1.5)
-    axs[1].plot(hull_contour[:,1], hull_contour[:,0], lw=1.5)
+    #axs[1].plot(hull_contour[:,1], hull_contour[:,0], lw=1.5)
 
     # Find the points on the mask boundary that are off of
     # the boundary of the convex hull in order to cut the cluster
@@ -153,17 +194,45 @@ for mask, mask_contour, hull, hull_contour in concave_masks:
     axs[0].scatter([d[1] for d in diffs], [d[0] for d in diffs], s=3.5, c='r')
 
     # Only find the clusters if there are at least two difference points
-    if len(diffs) > 1:
-        num_cluster, labels, diffs = find_clusters(diffs)
+    if len(diffs) <= 1:
+        plt.show()
+        continue
 
-        # Only plot the clusters if more than one was found
-        if num_cluster > 1:
-            colors = ['b', 'g', 'c', 'm', 'y']
-            for label_num, c in zip(range(num_cluster), colors):
-                pts = diffs[np.argwhere(labels == label_num).flatten()]
-                axs[0].scatter(pts[:,0], pts[:,1], s=10, c=c)
+    eps = 0.75 * float(mask.shape[0]*mask.shape[1])/avg_area
+    num_cluster, labels, diffs = find_clusters(diffs)
 
-            p1, p2 = find_closest_pair(diffs, labels, num_cluster)
-            axs[0].scatter([p1[0], p2[0]], [p1[1], p2[1]], s=25, c='r')
+    # Only plot the clusters if more than one was found
+    if num_cluster <= 1:
+        continue
+
+    colors = ['b', 'g', 'c', 'm', 'y']
+    for label_num, c in zip(range(num_cluster), colors):
+        pts = diffs[np.argwhere(labels == label_num).flatten()]
+        axs[0].scatter(pts[:,0], pts[:,1], s=10, c=c)
+
+    (p1, p2), (n1, n2), (i1, i2) = find_closest_pair(diffs, labels, num_cluster)
+    axs[0].scatter([p1[0], p2[0]], [p1[1], p2[1]], s=25, c='r')
+
+    s1 = diffs[np.argwhere(labels == n1).flatten()]
+    s2 = diffs[np.argwhere(labels == n2).flatten()]
+
+    def get_curve_pts(d):
+        # get left points
+        if d == 0:
+            pts1 = [s for s in s1 if s[0]<p1[0]]
+            pts2 = [s for s in s2 if s[0]<p2[0]]
+
+        # get right points
+        else:
+            pts1 = [s for s in s1 if s[0]>p1[0]]
+            pts2 = [s for s in s2 if s[0]>p2[0]]
+
+        return arr(pts1), arr(pts2)
+
+
+    find_cut(*get_curve_pts(0))
+    find_cut(*get_curve_pts(1))
+    #cut1 = find_cut(s1[:i1+1], s2[:i2+1])
+    #cut2 = find_cut(s1[i1:], s2[i2:])
 
     plt.show()

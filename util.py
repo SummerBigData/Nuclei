@@ -9,6 +9,12 @@ from cv2 import fastNlMeansDenoising as mean_denoise
 def arr(obj):
     return np.array(obj)
 
+def threshold(img, tval):
+    ttype = cv.THRESH_BINARY
+    if np.mean(img) >= 127.5:
+        ttype = cv.THRESH_BINARY_INV
+    return cv.threshold(img, tval, 255, ttype)[1]
+
 # Return all of the image ids that have masks associated with them
 def all_ids():
     img_ids = os.listdir('data')
@@ -185,3 +191,29 @@ def gray_imshow(ax, img, cmap='gray', title=None):
     ax.imshow(img, cmap)
     if not title is None:
         ax.set_title(title)
+
+import iou
+
+def test_img(img, mask):
+    return iou.iou_metric(img, mask)
+
+def test_imgs(imgs, masks):
+    return np.mean([iou.iou_metric(img, mask) for (img, mask) in zip(imgs, masks)])
+
+def test_model(model, gen, m, patches=False, ret_ious=False):
+    ious = []
+    for _ in range(m):
+        X, y = next(gen)
+        if patches:
+            p = model.predict(X)[:,:,:,0]
+            y = y[:,:,:,0]
+            ious.append(test_imgs(p, y)) 
+        else:
+            p = model.predict(X)[0,:,:,0]
+            y = y[0,:,:,0]
+            ious.append(test_img(p, y))
+   
+    mean_iou = np.mean(ious)
+    if ret_ious:
+        return mean_iou, ious
+    return mean_iou

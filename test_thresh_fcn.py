@@ -26,14 +26,20 @@ X = all_imgs(ids)
 y = masks_for(ids, erode=True) 
 gen = generator(X, y)
 
-from find_best_t import best_t, plot_best_t
+print 'Calculating mean IoU'
+mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True)
+plt.hist(ious)
+plt.show()
+print 'Mean IoU: %f' % mean_iou
+
+#from find_best_t import best_t, plot_best_t
 
 for i in range(5):
     X, y = next(gen)
     pred = model.predict(X)[0, :, :, 0]
 
     act = y[0, :, :, 0]
-    plot_best_t(img=(pred*255).astype(np.uint8), mask=(act*255).astype(np.uint8)) 
+    #plot_best_t(img=(pred*255).astype(np.uint8), mask=(act*255).astype(np.uint8)) 
     #print np.sqrt(sum((pred-act).flatten()**2))
 
     _, axs = plt.subplots(2, 2)
@@ -46,4 +52,6 @@ for i in range(5):
 
     #res, _ = best_t((pred*255.0).astype(np.uint8), (act*255.).astype(np.uint8), pred.shape)
     gray_imshow(axs[1,1], pred, title='Predicted (thresholded)')
+    print test_img(pred, act)
+
     plt.show()

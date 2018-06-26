@@ -1,4 +1,3 @@
-from PIL import Image
 import numpy as np
 import cv2 as cv
 from skimage.morphology import label
@@ -148,6 +147,8 @@ def plot_best_t(img=None, mask=None, th_arr=None, res=None):
     _, res = cv2.threshold(res, 0.25, 1.0, cv2.THRESH_BINARY)
     #kernel = np.ones((3, 3))
     #res = cv2.dilate(res, kernel, iterations=1) 
+
+    print 'IoU: %f' % test_img(res, mask)
 
     gray_imshow(axs[1,2], res, title='Result (smoothed)')
     plt.tight_layout(w_pad=0.0, h_pad=0.0)

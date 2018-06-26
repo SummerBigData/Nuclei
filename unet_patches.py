@@ -5,6 +5,7 @@ from keras.layers.merge import concatenate
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 
 from scipy.misc import imread, imresize
+from sklearn.feature_extraction.image import extract_patches_2d as extract_patches
 
 import sys
 from os import mkdir
@@ -16,17 +17,23 @@ name = sys.argv[1]
 if not isdir(join('models', name)):
     os.mkdir(join('models', name))
 
-def generator(X, y):
+from time import time
+def patches_generator(inputs, targets, k=8, m=100):
     while True:
-        idxs = np.random.choice(range(len(X)), len(X), replace=False)
-        X = [X[i] for i in idxs]
-        y = [y[i] for i in idxs]
+        idxs = np.random.choice(range(len(inputs)), len(inputs), replace=False)
+        inputs = [inputs[i] for i in idxs]
+        targets = [targets[i] for i in idxs]
 
-        for mask, bounds in zip(X, y):
-            #print mask.shape
-            mask = mask.reshape(1, mask.shape[0], mask.shape[1], 1)/255.0
-            bounds = bounds.reshape(1, bounds.shape[0], bounds.shape[1], 1)/255.0
-            yield mask, bounds
+        # For each image, generate 100 randomly sampled patches from that image
+        for x, y in zip(inputs, targets):
+            seed = int(time())
+
+            rng = np.random.RandomState(seed)
+            x_patches = extract_patches(x/255., (k, k), max_patches=m, random_state=rng)
+
+            rng = np.random.RandomState(seed)
+            y_patches = extract_patches(y/255., (k, k), max_patches=m, random_state=rng)
+            yield x_patches[:,:,:,np.newaxis], y_patches[:,:,:,np.newaxis]
 
 import tensorflow as tf
 from keras import backend as K
@@ -50,29 +57,6 @@ if __name__ == '__main__':
     paths = [join('data', id, 'images', 'mask_eroded.png') for id in ids]
     y = [imread(path) for path in paths]
 
-    s = [512, 256, 128]
-    for i in range(len(X)):
-        #old_shape = X[i].shape
-        #new_shape = [old_shape[0], old_shape[1]]
-
-        for size in s:
-            if X[i].shape[0] >= size or X[i].shape[1] >= size:
-                new_shape = (size, size)
-                break
-
-        X[i] = imresize(X[i], new_shape)
-        y[i] = imresize(y[i], new_shape)
-    """
-        div = 16
-        if not old_shape[0] % div == 0:
-            new_shape[0] = old_shape[0]//div * div
-        if not old_shape[1] % div == 0:
-            new_shape[1] = old_shape[1]//div * div
-
-        if not (old_shape[0] == new_shape[0] and old_shape[1] == new_shape[1]):
-            X[i] = imresize(X[i], (new_shape[0], new_shape[1]))
-            y[i] = imresize(y[i], (new_shape[0], new_shape[1]))        
-    """
     inputs = Input((None, None, 1))
 
     c1 = Conv2D(8, (3, 3), activation='relu', padding='same') (inputs)
@@ -120,8 +104,12 @@ if __name__ == '__main__':
     m = 9*len(X)//10
     X_val, y_val = X[m:], y[m:]
     X, y = X[:m], y[:m]
-    gen = generator(X, y)
-    val_gen = generator(X_val, y_val)
+
+    patch_size = 64
+    batch_size = 25
+
+    gen = patches_generator(X, y, k=patch_size, m=batch_size)
+    val_gen = patches_generator(X_val, y_val, k=patch_size, m=batch_size)
 
     early_stop = EarlyStopping(patience=5, verbose=1)
     checkpoint = ModelCheckpoint(join('models', name, 'model.h5'), 
@@ -140,4 +128,5 @@ if __name__ == '__main__':
         validation_steps=len(X_val),
         use_multiprocessing=True, workers=4,
         callbacks=[early_stop, checkpoint])
+
     model.save_weights(join('models', name, 'model.h5'))

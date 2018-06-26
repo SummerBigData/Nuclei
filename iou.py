@@ -62,7 +62,7 @@ def iou_metric(y, pred):
     for t in np.arange(0.5, 1.0, 0.05):
         tp, fp, fn = precision(t, iou)
         if (tp+fp+fn) > 0:
-            precs.append(tp / (tp+fp+fn))
+            precs.append(tp / float(tp+fp+fn))
         else:
             precs.append(0)
 

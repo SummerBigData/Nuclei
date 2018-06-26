@@ -1,4 +1,5 @@
 from boundary_fcn import generator
+from unet_patches import patches_generator
 from keras.models import model_from_json
 
 import sys
@@ -19,37 +20,34 @@ import matplotlib.pyplot as plt
 
 X, ids = all_imgs(ret_ids=True)
 y = masks_for(ids, erode=True)
+gen = patches_generator(X, y, k=64, m=25)
 
-s = [512, 256, 128]
-for i in range(len(X)):
-    for size in s:
-        if X[i].shape[0] >= size or X[i].shape[1] >= size:
-            new_shape = (size, size)
-            break
-    X[i] = imresize(X[i], new_shape)
-    y[i] = imresize(y[i], new_shape)
-
-gen = generator(X, y)
-
-#"""
+"""
 print 'Calculating mean IoU'
-mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True)
+mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True, patches=True)
 plt.hist(ious)
 plt.show()
 print 'Mean IoU: %f' % mean_iou
-#"""
+"""
 
 #from find_best_t import plot_best_t
+gen = generator(X, y)
 
 for i in range(5):
     X, y = next(gen)
+    if X.shape[1] % 64 == 0 and X.shape[2] % 64 == 0:
+        continue
 
-    pred = model.predict(X)[0, :, :, 0]
-    #pred = np.round(pred)
-    pred = (pred > 0.5).astype(np.uint8)
+    pred = np.zeros_like(X[0,:,:,0])
+    for i in range(X.shape[1]//64):
+        for j in range(X.shape[2]//64):
+            patch = X[0, i*64 : (i+1)*64, j*64 : (j+1)*64, 0]
+            patch = patch.reshape(1, patch.shape[0], patch.shape[1], 1)
+            pred_patch = model.predict(patch)[0, :, :, 0]
+            pred[i*64 : (i+1)*64, j*64 : (j+1)*64] = pred_patch
 
+    pred = np.round(pred)
     act = y[0, :, :, 0]
-    #print np.sqrt(np.sum((pred-act).flatten()**2))
     print test_img(pred, act)
 
     _, axs = plt.subplots(1, 3)
