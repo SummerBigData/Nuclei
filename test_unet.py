@@ -13,12 +13,13 @@ with open(join('models', name, 'model.json')) as f:
 model = model_from_json(json)
 model.load_weights(join('models', name, 'model.h5'))
 
+from cv2 import dilate
 from scipy.misc import imread, imresize
 from util import *
 import matplotlib.pyplot as plt
 
-X, ids = all_imgs(ret_ids=True)
-y = masks_for(ids, erode=True)
+X, ids = all_imgs(ret_ids=True, white=True)
+y = masks_for(ids, erode=False)
 
 s = [512, 256, 128]
 for i in range(len(X)):
@@ -31,12 +32,13 @@ for i in range(len(X)):
 
 gen = generator(X, y)
 
-#"""
+"""
 print 'Calculating mean IoU'
 mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True)
 plt.hist(ious)
 plt.show()
 print 'Mean IoU: %f' % mean_iou
+exit()
 #"""
 
 #from find_best_t import plot_best_t
@@ -47,6 +49,7 @@ for i in range(5):
     pred = model.predict(X)[0, :, :, 0]
     #pred = np.round(pred)
     pred = (pred > 0.5).astype(np.uint8)
+    #pred = dilate(pred, np.ones((2, 2)), iterations=1)
 
     act = y[0, :, :, 0]
     #print np.sqrt(np.sum((pred-act).flatten()**2))

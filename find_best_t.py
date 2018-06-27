@@ -111,7 +111,7 @@ def best_t(img, mask, orig_shape, ttype=cv.THRESH_BINARY, prev_th=0):
 """ Plotting """
 def plot_best_t(img=None, mask=None, th_arr=None, res=None):
     if img is None or mask is None:
-        img, mask, id = get_img(denoise=True, ret_mask=True, erode=True, ret_id=True)
+        img, mask, id = get_img(denoise=False, ret_mask=True, erode=True, ret_id=True)
 
     if np.mean(img) > 127.5:
         img = 255-img

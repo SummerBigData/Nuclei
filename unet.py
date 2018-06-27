@@ -36,19 +36,8 @@ def mean_iou(y, pred):
     return tf.py_func(batch_iou, [y, pred], tf.float32)
 
 if __name__ == '__main__':
-    ids = all_ids()
-    ids = list(filter(
-        lambda id: isfile(join('data', id, 'images', 'mask_eroded.png')), 
-        ids))
-
-    paths = [join('data', id, 'images', id+'.png') for id in ids]
-    X = [imread(path) for path in paths]
-
-    import cv2
-    X = [cv2.cvtColor(x, cv2.COLOR_BGRA2GRAY) for x in X]
-
-    paths = [join('data', id, 'images', 'mask_eroded.png') for id in ids]
-    y = [imread(path) for path in paths]
+    X, ids = all_imgs(ret_ids=True, white=False)
+    y = masks_for(ids, erode=False)
 
     s = [512, 256, 128]
     for i in range(len(X)):
@@ -62,17 +51,7 @@ if __name__ == '__main__':
 
         X[i] = imresize(X[i], new_shape)
         y[i] = imresize(y[i], new_shape)
-    """
-        div = 16
-        if not old_shape[0] % div == 0:
-            new_shape[0] = old_shape[0]//div * div
-        if not old_shape[1] % div == 0:
-            new_shape[1] = old_shape[1]//div * div
 
-        if not (old_shape[0] == new_shape[0] and old_shape[1] == new_shape[1]):
-            X[i] = imresize(X[i], (new_shape[0], new_shape[1]))
-            y[i] = imresize(y[i], (new_shape[0], new_shape[1]))        
-    """
     inputs = Input((None, None, 1))
 
     c1 = Conv2D(8, (3, 3), activation='relu', padding='same') (inputs)
@@ -123,7 +102,7 @@ if __name__ == '__main__':
     gen = generator(X, y)
     val_gen = generator(X_val, y_val)
 
-    early_stop = EarlyStopping(patience=5, verbose=1)
+    early_stop = EarlyStopping(patience=7, verbose=1)
     checkpoint = ModelCheckpoint(join('models', name, 'model.h5'), 
                                 monitor='val_mean_iou', mode='max', 
                                 verbose=1, save_best_only=True)
@@ -135,7 +114,7 @@ if __name__ == '__main__':
     model.fit_generator(
         gen, 
         steps_per_epoch=len(X), 
-        epochs=25,
+        epochs=35,
         validation_data=val_gen,
         validation_steps=len(X_val),
         use_multiprocessing=True, workers=4,

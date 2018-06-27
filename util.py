@@ -9,10 +9,11 @@ from cv2 import fastNlMeansDenoising as mean_denoise
 def arr(obj):
     return np.array(obj)
 
-def threshold(img, tval):
-    ttype = cv.THRESH_BINARY
-    if np.mean(img) >= 127.5:
-        ttype = cv.THRESH_BINARY_INV
+def threshold(img, tval, ttype=None):
+    if ttype is None:
+        ttype = cv.THRESH_BINARY
+        if np.mean(img) >= 127.5:
+            ttype = cv.THRESH_BINARY_INV
     return cv.threshold(img, tval, 255, ttype)[1]
 
 # Return all of the image ids that have masks associated with them
@@ -33,9 +34,16 @@ def load_or_denoise_and_save(path, id):
         return denoised
 
 # Return numpy arrays of all images. If gray=True, then return them in grayscale
-def all_imgs(ids=None, gray=True, denoise=False, ret_ids=False):
+def all_imgs(ids=None, gray=True, denoise=False, ret_ids=False, white=None):
     if ids is None:
-        ids = all_ids()
+        if white is None:
+            ids = all_ids()
+        else:
+            white_ids = open('white_img_ids.txt').readline().split(',')
+            if white:
+                ids = white_ids
+            else:
+                ids = [id for id in all_ids() if not id in white_ids]
 
     # Denoising each image every time is expensive, therefore if we are denoising,
     # then hope we have each denoised image saved and try and load those.
@@ -112,6 +120,24 @@ def get_mask_names(img_id):
     dirname = join('data', img_id)
     mask_dir = join(dirname, 'masks')
     return [join(mask_dir, m) for m in os.listdir(mask_dir)]
+
+# Return the center of mass of every mask for the given id
+from scipy.ndimage.measurements import center_of_mass as com
+def load_all_centroids(img_id):
+    dirname = join('data', img_id)
+    img_path = join(dirname, 'images', img_id+'.png')
+    size = imread(img_path).shape
+    size = (size[0], size[1])
+
+    masks = get_mask_names(img_id)
+    centrs = []
+
+    for mask in masks:
+        mask_img = imread(mask)
+        centrs.append(com(mask_img))
+
+    return centrs
+    
 
 # Load all the masks for a given image all overlayed on one another
 #
@@ -200,7 +226,7 @@ def test_img(img, mask):
 def test_imgs(imgs, masks):
     return np.mean([iou.iou_metric(img, mask) for (img, mask) in zip(imgs, masks)])
 
-def test_model(model, gen, m, patches=False, ret_ious=False):
+def test_model(model, gen, m, patches=False, ret_ious=False, model_white=None):
     ious = []
     for _ in range(m):
         X, y = next(gen)
@@ -209,7 +235,10 @@ def test_model(model, gen, m, patches=False, ret_ious=False):
             y = y[:,:,:,0]
             ious.append(test_imgs(p, y)) 
         else:
-            p = model.predict(X)[0,:,:,0]
+            if not model_white is None and np.mean(X[0,:,:,0]) >= 127.5:
+                p = model_white.predict(X)[0,:,:,0]
+            else:
+                p = model.predict(X)[0,:,:,0]
             y = y[0,:,:,0]
             ious.append(test_img(p, y))
    

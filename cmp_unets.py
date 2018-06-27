@@ -5,6 +5,10 @@ import sys
 from os.path import isfile, join
 from util import *
 
+from scipy.misc import imread, imresize
+from util import *
+import matplotlib.pyplot as plt
+
 whole_name = sys.argv[1]
 patch_name = sys.argv[2]
 
@@ -20,11 +24,7 @@ with open(join('models', patch_name, 'model.json')) as f:
 model_patch = model_from_json(json)
 model_patch.load_weights(join('models', patch_name, 'model.h5'))
 
-from scipy.misc import imread, imresize
-from util import *
-import matplotlib.pyplot as plt
-
-X, ids = all_imgs(ret_ids=True)
+X, ids = all_imgs(ret_ids=True, white=True)
 y = masks_for(ids, erode=True)
 
 s = [512, 256, 128]
@@ -46,8 +46,6 @@ plt.show()
 print 'Mean IoU: %f' % mean_iou
 """
 
-#from find_best_t import plot_best_t
-
 for i in range(5):
     X, y = next(gen)
 
@@ -62,6 +60,6 @@ for i in range(5):
     _, axs = plt.subplots(2, 2)
     gray_imshow(axs[0,0], X[0,:,:,0], title='Input')
     gray_imshow(axs[0,1], y[0,:,:,0], title='Target')
-    gray_imshow(axs[1,0], pred_whole, title='Predicted (whole)')
-    gray_imshow(axs[1,1], pred_patch, title='Predicted (patches)')
+    gray_imshow(axs[1,0], pred_whole, title='Predicted (all)')
+    gray_imshow(axs[1,1], pred_patch, title='Predicted (white)')
     plt.show()
