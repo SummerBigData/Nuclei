@@ -20,14 +20,24 @@ def neighborhood(patch, i, j):
 
 def find_sources():
     img, mask = get_img(denoise=False, ret_mask=True)
+
+    """
+    # Increase contrast
+    LUT = np.zeros(256, dtype=np.uint8)
+    LUT[img.min():img.max()+1] = np.linspace(0, 255, num=(img.max()-img.min())+1, endpoint=True, dtype=np.uint8)
+    img = LUT[img]
+    """
+
     maxval = img.max() 
 
     dg = nx.grid_2d_graph(img.shape[0], img.shape[1]).to_directed()
     ebunch = [e for e in dg.edges]
     dg.remove_edges_from(ebunch)
 
+    mult = 1.0
+    if np.mean(img) >= 127.5:
+        mult = -1.0
     cutoff = int(np.mean(img)/2)
-    print cutoff
 
     for i, row in enumerate(img):
         for j, val in enumerate(row):
@@ -39,51 +49,61 @@ def find_sources():
             L, R = max(0, j-1), min(img.shape[1], j+2)
             neighbors = img[T:B, L:R]
 
-            lower_pts = np.argwhere(neighbors < val)
+            lower_pts = np.argwhere(neighbors < val-1)
             for pt in lower_pts:
                 p = (pt[0]+T, pt[1]+L)
                 lowval = img[p[0], p[1]]
-                dg.add_weighted_edges_from([((j, i), (p[1], p[0]), 1)])
+                weight = 1. - (maxval-lowval)/float(maxval)
+                dg.add_weighted_edges_from([((j, i), (p[1], p[0]), weight)])
 
-            eq_pts = np.argwhere(neighbors == val)
+            #if len(lower_pts) == 0:
+            #    continue
+
+            #eq_pts = np.argwhere(neighbors == val)
+            eq_pts = np.argwhere((neighbors <= val+1) & (neighbors >= val-1))
             for pt in eq_pts:
                 p = (pt[0]+T, pt[1]+L)
                 dg.add_weighted_edges_from([
-                    ((j, i), (p[1], p[0]), 1),
-                    ((p[1], p[0]), (j, i), 1)])
+                    ((j, i), (p[1], p[0]), 0),
+                    ((p[1], p[0]), (j, i), 0)])
     
-    """
-    sources = {n: dg.out_degree(n, weight='weight') for n in dg.nodes}
-    sources = dict(sorted(sources.iteritems(), key=lambda (k,v): (v,k)))
-    for i, (k,v) in enumerate(sources):
-        print k, v
-        if i == 10:
-            break
-    print '\n***\n'
-    """
+    sources = {n: mult*dg.out_degree(n, weight='weight') for n in dg.nodes}
+    source_nodes = arr([k for (k, v) in sources.iteritems()])
+    degrees = arr([v for (k, v) in sources.iteritems()])
+    
+    #plt.hist(degrees)
+    #plt.show()
 
-    img_graph = img.copy()
+    idxs = list(reversed(np.argsort(degrees).tolist()))
+
+    #mean_degree = np.mean(degrees)
+    mean_degree = np.percentile(degrees, 99.5)
+    count_above_mean = np.sum(degrees > mean_degree)
+    print count_above_mean, len(source_nodes)
+    sources = source_nodes[idxs[:count_above_mean]]
+
+    """
+    img_graph = np.zeros_like(img)
     for scc in nx.strongly_connected_component_subgraphs(dg):
         if len(scc.nodes) <= 5:
             continue
-        #print len(scc.nodes)
+
         for node in scc.nodes:
-            img_graph[node[1], node[0]] = 255
-    img_graph[img_graph<255] = 0
-    #img_graph = 255-img_graph
+            img_graph[node[1], node[0]] = 1
+    """
 
-    img_graph = mean_denoise(img_graph, 5, 7, 21)
 
-    #img_graph = 255-img_graph
-    kernel = np.ones((2, 2))
-    graph_eroded = dilate(img_graph, kernel, iterations=2)
-    graph_eroded = fill_holes(graph_eroded//255)*255.
-
-    _, ax = plt.subplots(2, 2)
-    gray_imshow(ax[0,0], img)
-    gray_imshow(ax[1,0], 255-img_graph)
-    gray_imshow(ax[0,1], mask)
-    gray_imshow(ax[1,1], 255-graph_eroded)
+    #from skimage.measure import find_contours
+    #contours = find_contours(img_graph, 0.0)
+    _, ax = plt.subplots(1, 2)
+    gray_imshow(ax[0], img)
+    #gray_imshow(ax[1], img_graph)
+    ax[0].scatter(sources[:,0], sources[:,1], s=10, c='r')
+    #for c in contours:
+    #    if len(c) <= 15:
+    #        continue
+    #    ax[1].plot(c[:,1], c[:,0])
+    gray_imshow(ax[1], mask)
     plt.show()
 
 find_sources() 

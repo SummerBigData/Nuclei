@@ -1,5 +1,5 @@
 from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.preprocessing import ImageDataGenerator
+from keras.preprocessing.image import ImageDataGenerator
 from unet_arch import unet_model
 
 from scipy.misc import imread, imresize
@@ -20,11 +20,10 @@ def generator(X, y):
         X = [X[i] for i in idxs]
         y = [y[i] for i in idxs]
 
-        for mask, bounds in zip(X, y):
-            #print mask.shape
-            mask = mask.reshape(1, mask.shape[0], mask.shape[1], 1)/255.0
-            bounds = bounds.reshape(1, bounds.shape[0], bounds.shape[1], 1)/255.0
-            yield mask, bounds
+        for inpt, targ in zip(X, y):
+            inpt = inpt.reshape(1, inpt.shape[0], inpt.shape[1], 1)/255.0
+            targ = targ.reshape(1, targ.shape[0], targ.shape[1], 1)/255.0
+            yield inpt, targ
 
 import tensorflow as tf
 from keras import backend as K
@@ -47,14 +46,14 @@ if __name__ == '__main__':
         X[i] = imresize(X[i], new_shape)
         y[i] = imresize(y[i], new_shape)
 
-
     # ZCA whiten all of the images
+    """
     datagen = ImageDataGenerator(zca_whitening=True)
     for i, x in enumerate(X):
         batch = x.reshape(1, x.shape[0], x.shape[1], 1)
         datagen.fit(batch)
         X[i] = datagen.flow(batch, batch_size=1)
-
+    #"""
 
     m = 9*len(X)//10
     X_val, y_val = X[m:], y[m:]

@@ -14,7 +14,7 @@ name_white = sys.argv[2]
 
 #"""
 from create_sub import generate_sub
-generate_sub(name_black, 'comb-unet', name_white=name_white)
+generate_sub(name_black, 'comb-unet-sample', name_white=name_white)
 exit()
 #"""
 

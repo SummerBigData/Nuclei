@@ -53,17 +53,26 @@ def generate_sub(name_black, name, name_white=None):
         model_white = model_from_json(json)
         model_white.load_weights(join('models', name_white, 'model.h5'))
 
-    ids = os.listdir('test_data')
-    X = [imread(join('test_data', id, 'images', id+'.png')) for id in ids]
+    def load_imgs(d):
+        ids = os.listdir(d)
+        imgs = [imread(join(d, id, 'images', id+'.png')) for id in ids]
 
-    # Some test images are already 2d (grayscale) so don't convert them
-    for i, x in enumerate(X):
-        if len(x.shape) == 3:
-            X[i] = cvtColor(x, bgr2gray)
+        # Some test images are already 2d (grayscale) so don't convert them
+        for i, x in enumerate(imgs):
+            if len(x.shape) == 3:
+                imgs[i] = cvtColor(x, bgr2gray)
 
-    # Keep the sizes so that after passing through the unet, they can be
-    # reshaped into their original size
-    sizes = [x.shape for x in X]
+        # Keep the sizes so that after passing through the unet, they can be
+        # reshaped into their original size
+        shapes = [x.shape for x in imgs]
+
+        return imgs, ids, shapes
+
+    X, ids, sizes = load_imgs('test_data1')
+    #X_tmp, ids_tmp, size_tmp = load_imgs('test_data1')
+    #X.extend(X_tmp)
+    #sizes.extend(size_tmp)
+    #ids.extend(ids_tmp)
 
     # Reshape each image to either 512, 256, or 128, whichever is closest.
     #
