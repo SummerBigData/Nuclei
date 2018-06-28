@@ -134,6 +134,7 @@ def find_scc():
     gray_imshow(ax[2], mask, title='Mask')
     plt.show()
 
+find_sources()
 if __name__ == '__main__':
     print 'sdflkj2340r98sdfpoijsf'
     find_sources()
