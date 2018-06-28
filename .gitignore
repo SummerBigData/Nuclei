@@ -10,3 +10,4 @@ test_data2/
 *.swo
 *.html
 subs/
+*.csv

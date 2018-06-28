@@ -137,6 +137,14 @@ def load_all_centroids(img_id):
         centrs.append(com(mask_img))
 
     return centrs
+
+from skimage.morphology import label
+def centroids_from_img(img):
+    comps = label(img>0.5)
+    for i in range(1, len(np.unique(comps))):
+        stamped = np.zeros_like(img)
+        stamped[comps==i] = 1
+        yield com(stamped) 
     
 
 # Load all the masks for a given image all overlayed on one another
@@ -246,3 +254,31 @@ def test_model(model, gen, m, patches=False, ret_ious=False, model_white=None):
     if ret_ious:
         return mean_iou, ious
     return mean_iou
+
+def batchify(x):
+    assert len(x.shape) == 2
+    return x.reshape(1, x.shape[0], x.shape[1], 1)
+
+def unbatchify(x):
+    assert len(x.shape) == 4
+    return x[0,:,:,0]
+
+def load_unets(name_black, name_white=None):
+    from keras.models import model_from_json
+
+    with open(join('models', name_black, 'model.json')) as f:
+        json = f.read()
+
+    model_black = model_from_json(json)
+    model_black.load_weights(join('models', name_black, 'model.h5'))
+
+    if not name_white is None:
+        with open(join('models', name_white, 'model.json')) as f:
+            json = f.read()
+
+        model_white = model_from_json(json)
+        model_white.load_weights(join('models', name_white, 'model.h5'))
+
+        return model_black, model_white
+
+    return model_black
