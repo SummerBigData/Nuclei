@@ -41,9 +41,6 @@ if __name__ == '__main__':
 
     s = [512, 256, 128]
     for i in range(len(X)):
-        #old_shape = X[i].shape
-        #new_shape = [old_shape[0], old_shape[1]]
-
         for size in s:
             if X[i].shape[0] >= size or X[i].shape[1] >= size:
                 new_shape = (size, size)

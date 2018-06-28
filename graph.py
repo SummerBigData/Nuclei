@@ -81,6 +81,7 @@ def get_centroids_from_graph(sources, ret_clusters=False):
     
 
 def find_sources(img=None, plot=True, pct=99.5):
+    print 'sdfoiuweroiu'
     if img is None:
         img, mask = get_img(denoise=False, ret_mask=True)
     dg = create_graph(img)
@@ -106,7 +107,7 @@ def find_sources(img=None, plot=True, pct=99.5):
     sources, start = sources_at_pct(pct)
     for cm, pts in get_centroids_from_graph(sources, ret_clusters=True):
         if plot:
-            #ax[0].scatter(pts[:,0], pts[:,1], s=10)
+            ax[0].scatter(pts[:,0], pts[:,1], s=10)
             ax[0].scatter(cm[0], cm[1], s=50, marker='*')
         else:
             yield cm, pts
@@ -134,5 +135,7 @@ def find_scc():
     plt.show()
 
 if __name__ == '__main__':
-    find_sources() 
+    print 'sdflkj2340r98sdfpoijsf'
+    find_sources()
+    find_sources(plot=True) 
     #find_scc()

@@ -222,9 +222,10 @@ def mask_for(id, erode=False):
 
 def gray_imshow(ax, img, cmap='gray', title=None):
     ax.axis('off')
-    ax.imshow(img, cmap)
+    ax_obj = ax.imshow(img, cmap)
     if not title is None:
         ax.set_title(title)
+    return ax_obj
 
 import iou
 
@@ -255,8 +256,25 @@ def test_model(model, gen, m, patches=False, ret_ious=False, model_white=None):
         return mean_iou, ious
     return mean_iou
 
-def batchify(x):
+from scipy.misc import imresize
+def batchify(x, unet=False):
     assert len(x.shape) == 2
+
+    if unet:
+        print x.shape
+        new_h, new_w = x.shape
+        s = [1024, 512, 256, 128]
+        for size in s:
+            if x.shape[0] >= size:
+                new_h = size
+                break
+        for size in s:
+            if x.shape[1] >= size:
+                new_w = size
+                break
+        x = imresize(x, (new_h, new_w))
+        print x.shape
+
     return x.reshape(1, x.shape[0], x.shape[1], 1)
 
 def unbatchify(x):
