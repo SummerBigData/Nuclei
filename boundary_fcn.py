@@ -18,11 +18,12 @@ def cvt_to_gray(X):
     import cv2 as cv
     return [cv.cvtColor(x, cv.COLOR_BGRA2GRAY) for x in X]
 
-def generator(X, y):
+def generator(X, y, shuffle=True):
     while True:
-        idxs = np.random.choice(range(len(X)), len(X), replace=False)
-        X = [X[i] for i in idxs]
-        y = [y[i] for i in idxs]
+        if shuffle:
+            idxs = np.random.choice(range(len(X)), len(X), replace=False)
+            X = [X[i] for i in idxs]
+            y = [y[i] for i in idxs]
 
         for mask, bounds in zip(X, y):
             mask = mask.reshape(1, mask.shape[0], mask.shape[1], 1)/255.0

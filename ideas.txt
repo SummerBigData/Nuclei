@@ -1,0 +1,14 @@
+﻿IDEAS:
+
+Check bad IoU images to see if they favor FP or FN
+
+ – (Infeasible) Add term to loss that penalizes fragmented components
+	Cons: Not sure how to implement, probably will slow down training
+
+Figure out why sometimes network creates masks with holes in them, boundaries intact
+
+Maybe try normalizing pixel values
+
+Split black and white images not on features but on IoU and feed them into different U-Nets
+
+Use DBSCAN on images to effectively cluster them and feed each cluster to a different U-Net

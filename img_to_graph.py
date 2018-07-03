@@ -25,6 +25,7 @@ def disp_img_connectivity(k=5):
     patch = img[y:y+k, x:x+k]
     maxval = patch.max()
 
+    '''
     dg = nx.grid_2d_graph(k, k).to_directed()
     ebunch = [e for e in dg.edges]
     dg.remove_edges_from(ebunch)
@@ -47,6 +48,10 @@ def disp_img_connectivity(k=5):
                 dg.add_weighted_edges_from([
                     ((j, i), (pt[1], pt[0]), d),
                     ((pt[1], pt[0]), (j, i), d)])
+    '''
+    from graph import create_graph
+    dg = create_graph(patch)
+    pos = dict((n, (n[0], k-n[1])) for n in dg.nodes())
 
     _, axs = plt.subplots(1, 2)
     axs[1].axis('off')

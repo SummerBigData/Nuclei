@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 import os
 from os.path import join, isfile
 
@@ -85,9 +88,15 @@ def all_imgs(ids=None, gray=True, denoise=False, ret_ids=False, white=None):
 # erode - whether or not to erode the mask, only matters if ret_mask=True
 # ret_id - whether or not to return the corresponding id for the image chosen
 #          only matters if id=None
-def get_img(id=None, gray=True, denoise=False, ret_mask=False, erode=False, ret_id=False):
+def get_img(id=None, gray=True, denoise=False, ret_mask=False, erode=False, ret_id=False, white=None):
     if id is None:
         id = get_random_id()
+        if not white is None:
+            white_ids = open('white_img_ids.txt').readline().split(',')
+            if white:
+                id = np.random.choice(white_ids)
+            else:
+                id = np.random.choice(arr([id for id in all_ids() if not id in white_ids]))
 
     dir = join('data', id, 'images')
     if denoise:
@@ -112,6 +121,86 @@ def get_img(id=None, gray=True, denoise=False, ret_mask=False, erode=False, ret_
         return img, mask, id
     return img, mask
 
+def get_test_data(just_X=False, ret_ids=False):
+    from boundary_fcn import cvt_to_gray
+    if just_X:
+        from os import listdir
+        ids = listdir('test_data1')
+        X = [imread(join('test_data1', f, 'images', f+'.png')) for f in ids]
+        X = cvt_to_gray(X)
+        if ret_ids:
+            return X, ids
+        return X
+
+    ids, y = decode_solution_file('data/stage1_solution.csv')
+    X = [imread(join('test_data1', f, 'images', f+'.png')) for f in ids]
+    X = cvt_to_gray(X)
+    if ret_ids:
+        return X, y, ids
+    return X, y
+
+from numpy.random import uniform as rand
+from numpy.random import choice
+from keras.preprocessing.image import ImageDataGenerator as IDG
+
+def random_transform():
+    return {
+        'theta': rand(-45, 45), 'tx': rand(-25, 25), 'ty': rand(-25, 25),
+        'shear': rand(-15, 15), 'zx': rand(0.75, 1.25), 'zy': rand(0.75, 1.25),
+        'flip_horizontal': choice([True, False]), 'flip_vertical': choice([True, False]),
+        'channel_shift_intensity': 0, 'brightness': None}
+
+def apply_transform(img, mask, plt=None):
+    dg = IDG()
+    tr = random_transform()
+
+    img = np.expand_dims(img/255., axis=2)
+    mask = np.expand_dims(mask/255., axis=2)
+     
+    img = dg.apply_transform(img, tr)[:,:,0]
+    mask = dg.apply_transform(mask, tr)[:,:,0]
+    
+    if plt:
+        show_img_and_mask(img, mask, plt)
+    else:
+        return img, mask
+
+def show_img_and_mask(img, mask, plt):
+    _, ax = plt.subplots(1, 2)
+    gray_imshow(ax[0], img, title='Image')
+    gray_imshow(ax[1], mask, title='Mask')
+    plt.show()
+
+def decode_rle(df):
+    w, h = int(df['Width'].iloc[0]), int(df['Height'].iloc[0])
+    img = np.zeros((h, w))
+    
+    for _, row in df.iterrows():
+        rle = row['EncodedPixels']
+        terms = list(map(int, rle.split(' ')))
+
+        for i in range(0, len(terms)-1, 2):
+            start = terms[i]-1
+            length = terms[i+1]
+            col = start//h
+            row = start % h
+
+            for j in range(length):
+                img[row+j, col] = 1
+    return img
+
+from pandas import read_csv
+def decode_solution_file(fname):
+    df = read_csv(fname)
+    ids = set(df['ImageId'])
+    imgs = []
+
+    for id in ids:
+        img_df = df[df.ImageId == id]
+        imgs.append(decode_rle(img_df))
+
+    return ids, imgs
+
 def get_random_id():
     return np.random.choice(all_ids())
 
@@ -121,14 +210,23 @@ def get_mask_names(img_id):
     mask_dir = join(dirname, 'masks')
     return [join(mask_dir, m) for m in os.listdir(mask_dir)]
 
+def load_all_bboxs(img_id):
+    mask_names = get_mask_names(img_id)
+    bboxs = []
+
+    for mask_name in mask_names:
+        mask = imread(mask_name)
+        pixels = np.argwhere(mask>0)
+        t, l = pixels[:,0].min(), pixels[:,1].min()
+        b, r = pixels[:,0].max(), pixels[:,1].max()
+        bboxs.append([t, l, b, r])
+
+    return arr(bboxs)
+        
+
 # Return the center of mass of every mask for the given id
 from scipy.ndimage.measurements import center_of_mass as com
 def load_all_centroids(img_id):
-    dirname = join('data', img_id)
-    img_path = join(dirname, 'images', img_id+'.png')
-    size = imread(img_path).shape
-    size = (size[0], size[1])
-
     masks = get_mask_names(img_id)
     centrs = []
 
@@ -244,7 +342,7 @@ def test_model(model, gen, m, patches=False, ret_ious=False, model_white=None):
             y = y[:,:,:,0]
             ious.append(test_imgs(p, y)) 
         else:
-            if not model_white is None and np.mean(X[0,:,:,0]) >= 127.5:
+            if not model_white is None and np.mean(X[0,:,:,0]) >= X[0,:,:,0].max()/2.:
                 p = model_white.predict(X)[0,:,:,0]
             else:
                 p = model.predict(X)[0,:,:,0]

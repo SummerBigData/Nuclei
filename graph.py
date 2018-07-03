@@ -31,7 +31,7 @@ def create_graph(img):
             # the current value to be a "lower point".
             #
             # Otherwise, only consider pixels at least intvl+1 lower to be "lower points".
-            intvl = 2
+            intvl = 1
             if len(np.argwhere(neighbors < val-intvl)) > 0:
                 intvl = 0
 
@@ -78,10 +78,8 @@ def get_centroids_from_graph(sources, ret_clusters=False):
             yield cm, pts
         else:
             yield cm
-    
 
-def find_sources(img=None, plot=True, pct=99.5):
-    print 'sdfoiuweroiu'
+def find_sources(img=None, mask=None, plot=True, pct=99.5, orig_img=None):
     if img is None:
         img, mask = get_img(denoise=False, ret_mask=True)
     dg = create_graph(img)
@@ -102,18 +100,33 @@ def find_sources(img=None, plot=True, pct=99.5):
 
     if plot:
         _, ax = plt.subplots(1, 2)
-        gray_imshow(ax[0], img)
+        if orig_img is None:
+            gray_imshow(ax[0], img)
+        else:
+            gray_imshow(ax[0], orig_img)
 
     sources, start = sources_at_pct(pct)
+    cms = []
+
     for cm, pts in get_centroids_from_graph(sources, ret_clusters=True):
         if plot:
-            ax[0].scatter(pts[:,0], pts[:,1], s=10)
+            #ax[0].scatter(pts[:,0], pts[:,1], s=10)
             ax[0].scatter(cm[0], cm[1], s=50, marker='*')
+            cms.append(cm)
         else:
             yield cm, pts
 
+    from scipy.spatial import Voronoi, voronoi_plot_2d
+    vor = Voronoi(arr(cms))
+    voronoi_plot_2d(vor, ax=ax[0], line_colors='w', point_size=3.5)
+    '''
+    print verts
+    for i in range(len(verts)-1):
+        ax[0].plot([verts[i,0], verts[i+1,0]], [verts[i,1], verts[i+1,1]], c='r', lw=1.5)
+    '''
+
     if plot:
-        gray_imshow(ax[1], mask)
+        gray_imshow(ax[1], np.flipud(mask))
         plt.show()
 
 def find_scc():
@@ -134,9 +147,18 @@ def find_scc():
     gray_imshow(ax[2], mask, title='Mask')
     plt.show()
 
-find_sources()
 if __name__ == '__main__':
-    print 'sdflkj2340r98sdfpoijsf'
-    find_sources()
-    find_sources(plot=True) 
+    #'''
+    img, mask = get_img(ret_mask=True)
+    model_b, model_w = load_unets('unet-uneroded', name_white='unet-white2')
+
+    batch = batchify(img/255., unet=False)
+    if np.mean(img) >= 127.5:
+        p = model_w.predict(batch)
+    else:
+        p = model_b.predict(batch)
+    p = unbatchify(p)
+    p = (p*255.).astype(np.uint8)
+    next(find_sources(img=p, mask=mask, pct=90., orig_img=img))
+    #'''
     #find_scc()

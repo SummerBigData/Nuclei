@@ -1,6 +1,3 @@
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 from util import *
 from graph import find_sources 
 from networkx import bfs_edges
@@ -38,7 +35,7 @@ def traverse(img, src, visited):
             visited[pt[0], pt[1]] = 1
     
             ax_vis.set_data(visited)
-            plt.pause(0.001)
+            plt.pause(0.0005)
 
     return arr(nodes), visited
 

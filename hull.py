@@ -157,7 +157,10 @@ def find_cut(s1, s2):
     x = np.append(s1[:,0], s2[:,0])
     y = np.append(s1[:,1], s2[:,1])
 
-    if len(x) == 3:
+    if len(x) < 3:
+        def func(x, a, b):
+            return np.polyval([a, b], x)
+    elif len(x) == 3:
         def func(x, a, b, c):
             return np.polyval([a, b, c], x)
     elif len(x) == 4:
@@ -216,6 +219,8 @@ for mask, mask_contour, hull, hull_contour in concave_masks:
     s1 = diffs[np.argwhere(labels == n1).flatten()]
     s2 = diffs[np.argwhere(labels == n2).flatten()]
 
+    axs[1].plot([p1[0], p2[0]], [p1[1], p2[1]])
+
     def get_curve_pts(d):
         # get left points
         if d == 0:
@@ -230,8 +235,8 @@ for mask, mask_contour, hull, hull_contour in concave_masks:
         return arr(pts1), arr(pts2)
 
 
-    find_cut(*get_curve_pts(0))
-    find_cut(*get_curve_pts(1))
+    #find_cut(*get_curve_pts(0))
+    #find_cut(*get_curve_pts(1))
     #cut1 = find_cut(s1[:i1+1], s2[:i2+1])
     #cut2 = find_cut(s1[i1:], s2[i2:])
 

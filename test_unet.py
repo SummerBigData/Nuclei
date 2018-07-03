@@ -30,14 +30,68 @@ for i in range(len(X)):
     X[i] = imresize(X[i], new_shape)
     y[i] = imresize(y[i], new_shape)
 
-gen = generator(X, y)
+gen = generator(X, y, shuffle=False)
 
-"""
-print 'Calculating mean IoU'
-mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True)
-plt.hist(ious)
-plt.show()
-print 'Mean IoU: %f' % mean_iou
+#"""
+from os.path import join, isfile
+filename = join('ious', name+'.txt')
+if isfile(filename):
+    ious = np.genfromtxt(filename)
+    print np.mean(ious)
+    plt.hist(ious)
+    plt.show()
+else:
+    print 'Calculating mean IoU'
+    mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True)
+    np.savetxt(filename, ious)
+    plt.hist(ious)
+    plt.show()
+    print 'Mean IoU: %f' % mean_iou
+
+t = 0.4
+low_idxs = np.argwhere(ious <= t).flatten()
+hi_idxs = np.argwhere(ious > t).flatten()
+
+print '# Good: %d, # Bad: %d' % (len(hi_idxs), len(low_idxs))
+from skimage.morphology import label
+from skimage.measure import perimeter
+
+print 'Bad Results'
+for _ in range(5):
+    idx = np.random.choice(range(len(X)))
+    while not idx in low_idxs.tolist():
+        idx = np.random.choice(range(len(X)))
+
+    _, ax = plt.subplots(1, 3)
+    gray_imshow(ax[0], X[idx], title='Input')
+    
+    #p = unbatchify(model.predict(batchify(X[idx])))
+    x = X[idx]/255.
+    p = model.predict(x.reshape(1, x.shape[0], x.shape[1], 1))[0,:,:,0]
+    print test_img(y[idx], p)
+
+    gray_imshow(ax[1], np.round(p), title='Predicted')
+    gray_imshow(ax[2], y[idx], title='Target')
+    plt.show()
+
+print 'Good Results'
+for _ in range(5):
+    idx = np.random.choice(range(len(X)))
+    while not idx in hi_idxs.tolist():
+        idx = np.random.choice(range(len(X)))
+
+    _, ax = plt.subplots(1, 3)
+    gray_imshow(ax[0], X[idx], title='Input')
+    
+    #p = unbatchify(model.predict(batchify(X[idx])))
+    x = X[idx]/255.
+    p = model.predict(x.reshape(1, x.shape[0], x.shape[1], 1))[0,:,:,0]
+    print test_img(y[idx], p)
+
+    gray_imshow(ax[1], np.round(p), title='Predicted')
+    gray_imshow(ax[2], y[idx], title='Target')
+    plt.show()
+
 exit()
 #"""
 

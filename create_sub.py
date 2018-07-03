@@ -68,7 +68,10 @@ def generate_sub(name_black, name, name_white=None):
 
         return imgs, ids, shapes
 
-    X, ids, sizes = load_imgs('test_data1')
+    #X, ids, sizes = load_imgs('test_data1')
+    from util import get_test_data
+    X, ids = get_test_data(just_X=True, ret_ids=True)
+    sizes = [x.shape for x in X]
     #X_tmp, ids_tmp, size_tmp = load_imgs('test_data1')
     #X.extend(X_tmp)
     #sizes.extend(size_tmp)
@@ -90,6 +93,8 @@ def generate_sub(name_black, name, name_white=None):
 
     rle_ids = []
     rles = []
+    z_ids = []
+
     for i, x in enumerate(X):
         if i % 100 == 0:
             print '%d / %d' % (i, len(X))
@@ -125,7 +130,19 @@ def generate_sub(name_black, name, name_white=None):
         rles.extend(x_rles)
         rle_ids.extend([ids[i]] * len(x_rles))
 
+        if len(x_rles) == 0:
+            rles.extend([[0, 0]])
+            rle_ids.extend([ids[i]])
+            z_ids.append(ids[i])
+
     sub = pd.DataFrame()
     sub['ImageId'] = rle_ids
     sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in x))
     sub.to_csv(join('subs', name+'.csv'), index=False)
+
+    '''
+    with open(join('subs', name+'.csv'), 'a') as f:
+        for id in z_ids[:-1]:
+            f.write(id + " \"\n")
+        f.write(z_ids[-1] + " \"")
+    '''

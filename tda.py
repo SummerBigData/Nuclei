@@ -5,8 +5,9 @@ from skimage.morphology import label
 
 from util import *
 
-imgs, ids = all_imgs(ret_ids=True)
+imgs, ids = all_imgs(ret_ids=True, white=True)
 
+'''
 # 1 column for total mean value
 # 4 columns for the mean value in each quadrant
 # 5 columns for the number of components when thresholded @ 10,20,30,40,50
@@ -25,6 +26,10 @@ col = 5
 for t in range(10, 60, 10):
     data[:,col] = [len(np.unique(label(threshold(x, t)))) for x in imgs]
     col += 1
+'''
+from scipy.misc import imresize
+data = arr([imresize(img, (256, 256)) for img in imgs])
+data = data.reshape(data.shape[0], -1).astype(np.float64)
 
 import sklearn
 mapper = km.KeplerMapper()
@@ -40,10 +45,10 @@ graph = mapper.map(data_projected,
                 clusterer=sklearn.cluster.DBSCAN())
 
 _ = mapper.visualize(graph,
-                    path_html="tda_output.html",
-                    inverse_X=data,
-                    inverse_X_names=[
-                        'Total Mean', 'Quad Mean 1', 'Quad Mean 2',
-                        'Quad Mean 3', 'Quad Mean 4', '# Comp 10',
-                        '# Comp 20', '# Comp 30', '# Comp 40', '# Comp 50'],
-                    color_function=data[:,0])
+                    path_html="tda_white.html",
+                    inverse_X=data)
+                    #inverse_X_names=[
+                    #    'Total Mean', 'Quad Mean 1', 'Quad Mean 2',
+                    #    'Quad Mean 3', 'Quad Mean 4', '# Comp 10',
+                    #    '# Comp 20', '# Comp 30', '# Comp 40', '# Comp 50'],
+                    #color_function=data[:,0])

@@ -58,6 +58,7 @@ def iou_metric(y, pred):
 
         return np.sum(tp), np.sum(fp), np.sum(fn)
 
+    #'''
     precs = []
     for t in np.arange(0.5, 1.0, 0.05):
         tp, fp, fn = precision(t, iou)
@@ -67,6 +68,13 @@ def iou_metric(y, pred):
             precs.append(0)
 
     return np.mean(precs)
+    #'''
+    '''
+    tp, fp, fn = precision(0.9, iou)
+    if tp+fp+fn == 0:
+        return 0
+    return tp/float(tp+fp+fn)
+    #'''
 
 def batch_iou(y_batch, pred_batch):
     batch_size = y_batch.shape[0]

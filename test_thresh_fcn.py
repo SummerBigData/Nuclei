@@ -31,6 +31,7 @@ mean_iou, ious = test_model(model, gen, len(ids), ret_ious=True)
 plt.hist(ious)
 plt.show()
 print 'Mean IoU: %f' % mean_iou
+exit()
 
 #from find_best_t import best_t, plot_best_t
 
