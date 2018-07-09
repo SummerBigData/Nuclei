@@ -11,3 +11,5 @@ test_data2/
 *.html
 subs/
 *.csv
+*.h5
+ious/
