@@ -13,3 +13,4 @@ subs/
 *.csv
 *.h5
 ious/
+vae_*/
