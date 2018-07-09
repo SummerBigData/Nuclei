@@ -76,27 +76,44 @@ for i in range(5):
     plt.show()
 '''
 
+def show(inpt, pred, target, iou):
+    _, ax = plt.subplots(1, 3)
+    gray_imshow(ax[0], inpt, title='Input')
+    gray_imshow(ax[1], pred, title='Pred, IoU: %f' % iou)
+    gray_imshow(ax[2], target, title='Ground Truth')
+    plt.show()
+
 iou_b = []
 iou_w = []
+num_w = 0
+num_b = 0
 for _ in range(len(X)):
     X, y = next(gen)
     
     if np.mean(X[0,:,:,0]) >= X[0,:,:,0].max()/2.:
+        num_w += 1
         p = model_white.predict(X)[0,:,:,0]
         iou_w.append(test_img(p, y[0,:,:,0]))
+        show(X[0,:,:,0], np.round(p), y[0,:,:,0], iou_w[-1])
     else:
+        num_b += 1
         p = model_black.predict(X)[0,:,:,0]
-        iou_b.append(test_img(p, y[0,:,:,0]))
+        #iou_b.append(test_img(p, y[0,:,:,0]))
+print num_w, num_b
+exit()
 
 print 'Mean iou (b): %f' % arr(iou_b).mean()
 plt.hist(iou_b)
+plt.title('IoU Black')
 plt.show()
 
 print 'Mean iou (w): %f' % arr(iou_w).mean()
 plt.hist(iou_w)
+plt.title('IoU White')
 plt.show()
 
 ious = iou_b+iou_w
 print 'Mean iou (tot): %f' % arr(ious).mean()
 plt.hist(ious)
+plt.title('IoU Total')
 plt.show()

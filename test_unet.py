@@ -18,7 +18,7 @@ from scipy.misc import imread, imresize
 from util import *
 import matplotlib.pyplot as plt
 
-X, ids = all_imgs(ret_ids=True, white=True)
+X, ids = all_imgs(ret_ids=True, white=False)
 y = masks_for(ids, erode=False)
 
 s = [512, 256, 128]
@@ -110,7 +110,7 @@ for i in range(5):
     print test_img(pred, act)
 
     _, axs = plt.subplots(1, 3)
-    axs[0].imshow(pred, 'gray')
-    axs[1].imshow(y[0, :, :, 0], 'gray')
-    axs[2].imshow(X[0, :, :, 0], 'gray')
+    gray_imshow(axs[0], pred, title='pred')
+    gray_imshow(axs[1], y[0, :, :, 0], title='mask')
+    gray_imshow(axs[2], X[0, :, :, 0], title='input')
     plt.show()

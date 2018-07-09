@@ -145,13 +145,13 @@ from keras.preprocessing.image import ImageDataGenerator as IDG
 
 def random_transform():
     return {
-        'theta': rand(-45, 45), 'tx': rand(-25, 25), 'ty': rand(-25, 25),
-        'shear': rand(-15, 15), 'zx': rand(0.75, 1.25), 'zy': rand(0.75, 1.25),
+        'theta': rand(-15, 15), 'tx': rand(-25, 25), 'ty': rand(-25, 25),
+        'shear': rand(-15, 15), 'zx': rand(0.65, 1.35), 'zy': rand(0.65, 1.35),
         'flip_horizontal': choice([True, False]), 'flip_vertical': choice([True, False]),
         'channel_shift_intensity': 0, 'brightness': None}
 
 def apply_transform(img, mask, plt=None):
-    dg = IDG()
+    dg = IDG(fill_mode='constant', cval=0)
     tr = random_transform()
 
     img = np.expand_dims(img/255., axis=2)
@@ -199,7 +199,7 @@ def decode_solution_file(fname):
         img_df = df[df.ImageId == id]
         imgs.append(decode_rle(img_df))
 
-    return ids, imgs
+    return list(ids), imgs
 
 def get_random_id():
     return np.random.choice(all_ids())

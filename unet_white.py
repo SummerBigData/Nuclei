@@ -18,6 +18,7 @@ def augment(inpts, targets, num_aug=5):
             x, y = apply_transform(inpt, target)
             X_set.append(np.expand_dims(x, axis=2))
             y_set.append(np.expand_dims(y, axis=2))
+
     return X_set, y_set
         
 

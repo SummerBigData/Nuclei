@@ -1,4 +1,4 @@
 Bins: Black, White
 Black-model: unet-black-strictiou
-White-model: unet-white2
-Mean IoU: 0.565247
+White-model: unet-white-aug-morezoom-lessrot 
+Mean IoU: 0.570561 
