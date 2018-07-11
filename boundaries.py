@@ -27,14 +27,19 @@ for i, img_id in enumerate(all_ids()):
             boundary_img = np.zeros(mask_arr.shape)
             total_mask = np.zeros(mask_arr.shape)
 
+        ''' Don't erode
         # Perform the erosion and find the border of the eroded mask.
         kernel = np.ones((2, 2))
         mask_ero = cv.erode(mask_arr, kernel, iterations=1)
         contours = find_contours(mask_ero, 0.0)
+        '''
+
+        contours = find_contours(mask_arr, 0.0)
 
         # Sometimes after erosion, the mask will be gone.
         # For now we just ignore that mask and don't save the image.
         if len(contours) == 0:
+            print 'not saving'
             shd_save = False
             break
 
@@ -47,10 +52,16 @@ for i, img_id in enumerate(all_ids()):
         # I know this is kind of ugly but it's the only way I could get it
         # to work.
         for pt in boundary:
-            img[pt[0], pt[1]] = 255.0
+            if pt[0] > 0:
+                img[pt[0]-1, pt[1]] = 255.
+
+            img[pt[0], pt[1]] = 255.
+
+            if pt[0] < img.shape[0]-1:
+                img[pt[0]+1, pt[1]] = 255.
         
         total_mask += mask_arr
         boundary_img += img
 
     if shd_save:
-        imsave(join('data', img_id, 'images', 'bounds_eroded.png'), boundary_img)
+        imsave(join('data', img_id, 'images', 'bounds_dilated.png'), boundary_img)

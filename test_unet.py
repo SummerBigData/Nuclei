@@ -1,4 +1,4 @@
-from boundary_fcn import generator
+from unet_white import generator
 from keras.models import model_from_json
 
 import sys
@@ -18,19 +18,20 @@ from scipy.misc import imread, imresize
 from util import *
 import matplotlib.pyplot as plt
 
-X, ids = all_imgs(ret_ids=True, white=False)
+X, ids = all_imgs(ret_ids=True, white=True, gray=False)
 y = masks_for(ids, erode=False)
 
 s = [512, 256, 128]
 for i in range(len(X)):
     for size in s:
         if X[i].shape[0] >= size or X[i].shape[1] >= size:
-            new_shape = (size, size)
+            new_d = size
             break
-    X[i] = imresize(X[i], new_shape)
-    y[i] = imresize(y[i], new_shape)
+    X[i] = imresize(X[i], (size, size, 4))
+    y[i] = imresize(y[i], (size, size))
+    y[i] = np.expand_dims(y[i], axis=2)
 
-gen = generator(X, y, shuffle=False)
+gen = generator(X, y)
 
 #"""
 from os.path import join, isfile
@@ -67,11 +68,12 @@ for _ in range(5):
     
     #p = unbatchify(model.predict(batchify(X[idx])))
     x = X[idx]/255.
-    p = model.predict(x.reshape(1, x.shape[0], x.shape[1], 1))[0,:,:,0]
-    print test_img(y[idx], p)
+    p = model.predict(x.reshape(1, x.shape[0], x.shape[1], 4))[0,:,:,0]
+    print y[idx].shape, p.shape
+    print test_img(y[idx][:,:,0], p)
 
     gray_imshow(ax[1], np.round(p), title='Predicted')
-    gray_imshow(ax[2], y[idx], title='Target')
+    gray_imshow(ax[2], y[idx][:,:,0], title='Target')
     plt.show()
 
 print 'Good Results'
@@ -85,11 +87,11 @@ for _ in range(5):
     
     #p = unbatchify(model.predict(batchify(X[idx])))
     x = X[idx]/255.
-    p = model.predict(x.reshape(1, x.shape[0], x.shape[1], 1))[0,:,:,0]
-    print test_img(y[idx], p)
+    p = model.predict(x.reshape(1, x.shape[0], x.shape[1], 4))[0,:,:,0]
+    print test_img(y[idx][:,:,0], p)
 
     gray_imshow(ax[1], np.round(p), title='Predicted')
-    gray_imshow(ax[2], y[idx], title='Target')
+    gray_imshow(ax[2], y[idx][:,:,0], title='Target')
     plt.show()
 
 exit()

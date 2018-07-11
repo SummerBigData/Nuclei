@@ -3,16 +3,18 @@ from flask.json import jsonify
 from os.path import join, isfile
 
 app = Flask(__name__)
-base_path = '/n/home00/lerner.67/nuclei/test_data2'
+base_path = '/n/home00/lerner.67/nuclei'
 
 @app.route('/')
 def index():
-    return app.send_static_file('vae_tmp.html')
+    return app.send_static_file('cvae_tmp.html')
 
-@app.route('/disp/<id>')
-def disp(id):
+@app.route('/disp/<dir>/<id>')
+def disp(dir, id):
+    dir = str(dir)
     id = str(id)
-    path = join(base_path, id, 'images', id+'.png')
+    print dir, id
+    path = join(base_path, dir, id, 'images', id+'.png')
     if not isfile(path):
         return None, 500 
 

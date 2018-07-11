@@ -40,7 +40,14 @@ def sampling(args):
 from plotly.offline import plot
 import plotly.graph_objs as go
 
-def plot_results(models, x_test, batch_size=128, model_name="vae_mlp", ids=[], test_ids=[]):
+def create_trace(x_set, encoder, name='set name'):
+    z_mean, _, _ = encoder.predict(x_set, batch_size=128)
+    return go.Scatter(
+        x=z_mean[:,0], y=z_mean[:,1],
+        mode='markers', name=name,
+        marker=dict(color='rgb(0,0,0)')) 
+
+def plot_results(models, x_test, x_test1, x_train, batch_size=128, model_name="vae_mlp", ids=[], test_ids=[]):
     encoder, decoder = models
 
     if not os.path.exists(model_name):
@@ -49,10 +56,15 @@ def plot_results(models, x_test, batch_size=128, model_name="vae_mlp", ids=[], t
     filename = os.path.join(model_name, "vae_mean.png")
     z_mean, _, _ = encoder.predict(x_test, batch_size=batch_size)
 
-    from sklearn.cluster import KMeans
-    km = KMeans(n_clusters=4).fit(z_mean)
-    labels = km.labels_
-    centers = km.cluster_centers_
+    #from sklearn.cluster import KMeans
+    from sklearn.cluster import AgglomerativeClustering    
+
+    #km = KMeans(n_clusters=4).fit(z_mean)
+    #labels = km.labels_
+    #centers = km.cluster_centers_
+
+    ac = AgglomerativeClustering(n_clusters=4).fit(z_mean)
+    labels = ac.labels_
 
     from sklearn.svm import SVC
     xs = z_mean.copy()
@@ -61,14 +73,6 @@ def plot_results(models, x_test, batch_size=128, model_name="vae_mlp", ids=[], t
     traces = []
 
     l, r = z_mean[:,0].min(), z_mean[:,0].max()
-    '''
-    for m_arr, inter in zip(ms, bs):
-        print(m_arr, inter)
-        m, b = m_arr[0]/m_arr[1], inter/m_arr[1]
-        traces.append(go.Scatter(
-            x=[l, r], y=[l*m+b, r*m+b],
-            mode='lines', name='boundary'))
-    '''
 
     colors = ['rgb(255,51,51)', 'rgb(51,153,51)', 'rgb(0,0,255)', 'rgb(255,153,0)']
     for i in range(num_clust):
@@ -96,12 +100,19 @@ def plot_results(models, x_test, batch_size=128, model_name="vae_mlp", ids=[], t
                 opacity=0.5,
                 color=colors[i])))
 
+    '''
     traces.append(go.Scatter(
         x=centers[:,0], y=centers[:,1],
         mode='markers', name='center',
         marker=dict(
             color='rgb(0,0,0)',
             size=10)))
+    '''
+    if not x_train is None:
+        traces.append(create_trace(x_train, encoder, name='train'))
+
+    if not x_test1 is None:
+        traces.append(create_trace(x_test1, encoder, name='stage 1'))
 
     layout = dict(
         title='Test Data',
@@ -161,38 +172,38 @@ def load_imgs(d):
     return imgs, ids
 
 if __name__ == '__main__':
-    X, ids = all_imgs(ret_ids=True)
+    #X, ids = all_imgs(ret_ids=True)
     #X, y, ids = get_test_data(ret_ids=True)
-    X_tmp, test_ids = load_imgs('test_data2')
-    #X, ids = load_imgs('test_data2')
-    X.extend(X_tmp)
-    ids.extend(test_ids)
-    test_ids = []
+    #X_tmp, test_ids = load_imgs('test_data2')
+    X, ids = load_imgs('test_data2')
+    test_ids = ids
+    #X.extend(X_tmp)
+    #ids.extend(test_ids)
+    #test_ids = []
+    X_test1 = get_test_data(just_X=True)
+    X_train = all_imgs()
 
     from scipy.misc import imresize
     X = arr([imresize(x, (128, 128))/255. for x in X])
-    #y = arr([imresize(img, (128, 128)) for img in y])
-
     X = X.reshape(len(X), -1)
-    print(X.shape)
+
+    X_test1 = arr([imresize(x, (128, 128))/255. for x in X_test1])
+    X_test1 = X_test1.reshape(len(X_test1), -1)
+
+    X_train = arr([imresize(x, (128, 128))/255. for x in X_train])
+    X_train = X_train.reshape(len(X_train), -1)
 
     #m = 0 
-    m = int(len(X)*.9)
-    x_train = X[:m]
-    x_test = X[m:]
+    #m = int(len(X)*.9)
+    #x_train = X[:m]
+    #x_test = X[m:]
 
     parser = argparse.ArgumentParser()
     help_ = "Load h5 model trained weights"
     parser.add_argument("-w", "--weights", help=help_)
-    help_ = "Use mse loss instead of binary cross entropy (default)"
-    parser.add_argument("-m",
-                        "--mse",
-                        help=help_, action='store_true')
     args = parser.parse_args()
     models = (encoder, decoder)
-    #data = (x_test, y_test)
 
-    # VAE loss = mse_loss or xent_loss + kl_loss
     reconstruction_loss = mse(inputs, outputs)
     reconstruction_loss *= original_dim
     kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
@@ -201,16 +212,12 @@ if __name__ == '__main__':
     vae_loss = K.mean(reconstruction_loss + kl_loss)
     vae.add_loss(vae_loss)
     vae.compile(optimizer='adam')
-    #plot_model(vae,
-    #           to_file='vae_mlp.png',
-    #           show_shapes=True)
 
     if args.weights:
         early_stop = EarlyStopping(patience=3, verbose=1)
         checkpoint = ModelCheckpoint('vae_test2.h5', verbose=1, save_best_only=True)
         vae = vae.load_weights(args.weights)
     else:
-        # train the autoencoder
         vae.fit(x_train,
                 epochs=50,
                 batch_size=batch_size,
@@ -218,7 +225,7 @@ if __name__ == '__main__':
         vae.save_weights('vae_test2.h5')
 
     plot_results(models,
-                 X,
+                 X, X_test1, X_train,
                  batch_size=batch_size,
                  model_name="vae_test2",
                  ids=ids, test_ids=test_ids)

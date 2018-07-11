@@ -10,10 +10,6 @@ from os import mkdir
 from os.path import join, isfile, isdir
 from util import *
 
-name = sys.argv[1]
-if not isdir(join('models', name)):
-    os.mkdir(join('models', name))
-
 def cvt_to_gray(X):
     import cv2 as cv
     return [cv.cvtColor(x, cv.COLOR_BGRA2GRAY) for x in X]
@@ -31,6 +27,10 @@ def generator(X, y, shuffle=True):
             yield mask, bounds
 
 if __name__ == '__main__':
+    name = sys.argv[1]
+    if not isdir(join('models', name)):
+        os.mkdir(join('models', name))
+
     ids = all_ids()
     ids = list(filter(
         lambda id: isfile(join('data', id, 'images', 'bounds_eroded.png')), 

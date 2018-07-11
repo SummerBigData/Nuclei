@@ -29,7 +29,8 @@ def generator(X, y):
         y = [y[i] for i in idxs]
 
         for inpt, target in zip(X, y):
-            yield np.expand_dims(inpt, axis=0), np.expand_dims(target, axis=0)
+            inp, targ = np.expand_dims(inpt, axis=0), np.expand_dims(target, axis=0)
+            yield inp, targ
 
 import tensorflow as tf
 from keras import backend as K
@@ -43,36 +44,40 @@ if __name__ == '__main__':
     if not isdir(join('models', name)):
         os.mkdir(join('models', name))
 
-    X, ids = all_imgs(white=True, ret_ids=True)
+    X, ids = all_imgs(white=True, ret_ids=True, gray=False)
     y = masks_for(ids, erode=False)
 
     s = [512, 256, 128]
     for i in range(len(X)):
         for size in s:
             if X[i].shape[0] >= size or X[i].shape[1] >= size:
-                new_shape = (size, size)
+                new_d = size
                 break
 
-        X[i] = imresize(X[i], new_shape)
-        y[i] = imresize(y[i], new_shape)
+        X[i] = imresize(X[i]/255., (new_d, new_d, 4))
+        y[i] = imresize(y[i]//255, (new_d, new_d))
+        y[i] = np.expand_dims(y[i], axis=2)
 
-    #m = 9*len(X)//10
-    #X_val, y_val = X[m:], y[m:]
-    #X, y = X[:m], y[:m]
+    m = 9*len(X)//10
+    X_val, y_val = X[m:], y[m:]
+    X, y = X[:m], y[:m]
+
+    '''
     X_val, y_val = get_test_data()
     for i in range(len(X_val)):
         for size in s:
             if X_val[i].shape[0] >= size or X_val[i].shape[1] >= size:
-                new_shape = (size, size)
+                new_d
                 break
 
-        X_val[i] = imresize(X_val[i], new_shape)
-        y_val[i] = imresize(y_val[i], new_shape)
-        X_val[i] = np.expand_dims(X_val[i]/255., axis=2)
-        y_val[i] = np.expand_dims(y_val[i]/255., axis=2)
+        X_val[i] = imresize(X_val[i]/255., (new_d, new_d, 4))
+        y_val[i] = imresize(y_val[i]//255, (new_d, new_d))
+        y_val[i] = np.expand_dims(y_val[i], axis=2)
+    '''
 
-    num_aug = 4
-    gen = generator(*augment(X, y, num_aug=num_aug))
+    num_aug = 1
+    #gen = generator(*augment(X, y, num_aug=num_aug))
+    gen = generator(X, y)
     val_gen = generator(X_val, y_val)
 
     early_stop = EarlyStopping(patience=7, verbose=1)
@@ -80,7 +85,7 @@ if __name__ == '__main__':
                                 monitor='val_mean_iou', mode='max', 
                                 verbose=1, save_best_only=True)
 
-    model = unet_model()
+    model = unet_model(inpt_shape=(None, None, 4))
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=[mean_iou])
     with open(join('models', name, 'model.json'), 'w') as f:
         f.write(model.to_json())
